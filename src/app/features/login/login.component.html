@@ -1,0 +1,45 @@
+<div class="min-h-screen flex items-center justify-center bg-slate-50">
+    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
+        <div class="text-center mb-8">
+            <div class="flex items-center justify-center gap-2 text-primary mb-4">
+                <span class="material-symbols-outlined text-4xl">receipt_long</span>
+                <span class="text-2xl font-black tracking-tight">Fatura<span class="text-slate-900">Pro</span></span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900">Giriş Yap</h1>
+            <p class="text-slate-500 mt-2">Hesabınıza erişmek için bilgilerinizi girin.</p>
+        </div>
+
+        <button (click)="loginWithGoogle()"
+            class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-50 transition-colors mb-6">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="w-5 h-5">
+            Google ile Giriş Yap
+        </button>
+
+        <div class="relative mb-6">
+            <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-slate-200"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+                <span class="px-2 bg-white text-slate-500">veya e-posta ile</span>
+            </div>
+        </div>
+
+        <form (submit)="login()" class="space-y-4">
+            <app-input label="E-Posta" type="email" placeholder="ornek@sirket.com" [(ngModel)]="email" name="email"
+                icon="mail"></app-input>
+
+            <app-input label="Şifre" type="password" placeholder="••••••••" [(ngModel)]="password" name="password"
+                icon="lock"></app-input>
+
+            <div class="flex items-center justify-between text-sm">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary">
+                    <span class="text-slate-600">Beni Hatırla</span>
+                </label>
+                <a href="#" class="text-primary font-medium hover:underline">Şifremi Unuttum</a>
+            </div>
+
+            <app-button variant="primary" [fullWidth]="true" type="submit">Giriş Yap</app-button>
+        </form>
+    </div>
+</div>

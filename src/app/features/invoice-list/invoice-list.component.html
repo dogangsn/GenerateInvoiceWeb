@@ -1,0 +1,79 @@
+<div class="flex h-full flex-col overflow-hidden p-8">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">Fatura Taslaklarım</h1>
+            <p class="text-slate-500">Kaydedilmiş faturalarınızı yönetin ve düzenleyin.</p>
+        </div>
+        <app-button variant="primary" icon="add">Yeni Fatura Oluştur</app-button>
+    </div>
+
+    <!-- Controls -->
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-slate-200 py-4">
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="relative">
+                <span
+                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                <input type="text" placeholder="Taslaklarda ara..."
+                    class="h-10 w-64 rounded-lg border border-slate-300 pl-10 text-sm focus:border-primary focus:ring-1 focus:ring-primary" />
+            </div>
+            <app-button variant="outline" icon="sort">Sırala</app-button>
+            <app-button variant="outline" icon="filter_list">Filtrele</app-button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="mt-6 flex-1 overflow-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+        <table class="w-full min-w-[800px] text-left text-sm">
+            <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                    <th class="w-12 px-4 py-3">
+                        <input type="checkbox"
+                            class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary" />
+                    </th>
+                    <th class="px-6 py-3 font-semibold">Başlık</th>
+                    <th class="px-6 py-3 font-semibold">Etiketler</th>
+                    <th class="px-6 py-3 font-semibold">Tarih</th>
+                    <th class="px-6 py-3 font-semibold">Durum</th>
+                    <th class="px-6 py-3"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                <tr *ngFor="let invoice of invoices" class="group hover:bg-slate-50">
+                    <td class="px-4 py-4">
+                        <input type="checkbox"
+                            class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary" />
+                    </td>
+                    <td class="px-6 py-4 font-medium text-slate-900">{{ invoice.customerName }} - {{ invoice.number }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex gap-2">
+                            <span *ngFor="let tag of invoice.tags"
+                                class="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
+                                {{ tag }}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-500">{{ invoice.date }}</td>
+                    <td class="px-6 py-4">
+                        <span
+                            [className]="'rounded-full px-2.5 py-0.5 text-xs font-bold ' + getStatusColor(invoice.status)">
+                            {{ invoice.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex justify-end gap-3 opacity-0 transition-opacity group-hover:opacity-100">
+                            <button class="flex items-center gap-1 text-primary hover:underline">
+                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                                Düzenle
+                            </button>
+                            <button class="flex items-center gap-1 text-red-600 hover:underline">
+                                <span class="material-symbols-outlined text-[18px]">delete</span>
+                                Sil
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

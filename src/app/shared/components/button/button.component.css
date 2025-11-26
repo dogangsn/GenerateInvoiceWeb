@@ -1,0 +1,10 @@
+/* Styles are handled by Tailwind classes in the TS file for dynamic binding, 
+   but we can add component-specific styles here if needed. */
+:host {
+    display: inline-block;
+}
+
+:host(.w-full) {
+    display: block;
+    width: 100%;
+}
