@@ -12,52 +12,28 @@ export class AuthService {
 
     user$: Observable<User | null> = user(this.auth);
 
-    constructor() { }
+    get currentUser(): User | null {
+        return this.auth.currentUser;
+    }
 
     async loginWithGoogle() {
-        try {
-            const provider = new GoogleAuthProvider();
-            const result = await signInWithPopup(this.auth, provider);
-            console.log('User signed in:', result.user);
-            this.router.navigate(['/dashboard']);
-            return result.user;
-        } catch (error) {
-            console.error('Error signing in with Google:', error);
-            throw error;
-        }
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(this.auth, provider);
+        return result.user;
     }
 
     async loginWithEmail(email: string, password: string) {
-        try {
-            const result = await signInWithEmailAndPassword(this.auth, email, password);
-            console.log('User logged in:', result.user);
-            this.router.navigate(['/dashboard']);
-            return result.user;
-        } catch (error) {
-            console.error('Error logging in:', error);
-            throw error;
-        }
+        const result = await signInWithEmailAndPassword(this.auth, email, password);
+        return result.user;
     }
 
     async registerWithEmail(email: string, password: string) {
-        try {
-            const result = await createUserWithEmailAndPassword(this.auth, email, password);
-            console.log('User registered:', result.user);
-            this.router.navigate(['/dashboard']);
-            return result.user;
-        } catch (error) {
-            console.error('Error registering:', error);
-            throw error;
-        }
+        const result = await createUserWithEmailAndPassword(this.auth, email, password);
+        return result.user;
     }
 
     async logout() {
-        try {
-            await signOut(this.auth);
-            this.router.navigate(['/login']);
-        } catch (error) {
-            console.error('Error signing out:', error);
-            throw error;
-        }
+        await signOut(this.auth);
+        this.router.navigate(['/login']);
     }
 }

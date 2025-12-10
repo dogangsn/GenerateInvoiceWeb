@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
     selector: 'app-sidebar',
@@ -10,6 +11,8 @@ import { RouterModule } from '@angular/router';
     styleUrl: './sidebar.component.css'
 })
 export class SidebarComponent {
+    private authService = inject(AuthService);
+
     menuItems = [
         { id: 'dashboard', icon: 'dashboard', label: 'Panel', route: '/dashboard' },
         { id: 'invoices', icon: 'description', label: 'Faturalar', route: '/invoices' },
@@ -18,4 +21,8 @@ export class SidebarComponent {
         { id: 'reports', icon: 'bar_chart', label: 'Raporlar', route: '/reports' },
         { id: 'settings', icon: 'settings', label: 'Ayarlar', route: '/settings' },
     ];
+
+    async logout() {
+        await this.authService.logout();
+    }
 }

@@ -9,11 +9,17 @@
             <p class="text-slate-500 mt-2">Hesabınıza erişmek için bilgilerinizi girin.</p>
         </div>
 
-        <button (click)="loginWithGoogle()"
-            class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-50 transition-colors mb-6">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="w-5 h-5">
-            Google ile Giriş Yap
+        <button (click)="loginWithGoogle()" [disabled]="isLoading"
+            class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-50 transition-colors mb-6 disabled:opacity-50 disabled:cursor-not-allowed">
+            <img *ngIf="!isLoading" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="w-5 h-5">
+            <span *ngIf="isLoading" class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+            {{ isLoading ? 'Giriş yapılıyor...' : 'Google ile Giriş Yap' }}
         </button>
+
+        <!-- Error Message -->
+        <div *ngIf="errorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            {{ errorMessage }}
+        </div>
 
         <div class="relative mb-6">
             <div class="absolute inset-0 flex items-center">

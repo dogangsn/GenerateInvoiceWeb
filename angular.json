@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": "3e2772ae-22c5-440f-825d-45f1175a21f6"
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -30,6 +31,12 @@
           },
           "configurations": {
             "production": {
+              "extractLicenses": false,
+              "sourceMap": false,
+              "optimization": true
+            },
+            "development": {
+              "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
             }
