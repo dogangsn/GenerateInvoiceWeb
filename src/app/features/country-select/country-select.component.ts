@@ -1,12 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-
-interface Country {
-    name: string;
-    flag: string;
-    code: string;
-}
+import { CountryService } from '../../core/services/country.service';
+import { Country } from '../../core/models/country.model';
 
 @Component({
     selector: 'app-country-select',
@@ -16,27 +12,22 @@ interface Country {
     styleUrl: './country-select.component.css'
 })
 export class CountrySelectComponent {
-    countries: Country[] = [
-        { name: 'Türkiye', flag: '🇹🇷', code: 'TR' },
-        { name: 'Almanya', flag: '🇩🇪', code: 'DE' },
-        { name: 'Fransa', flag: '🇫🇷', code: 'FR' },
-        { name: 'Birleşik Krallık', flag: '🇬🇧', code: 'UK' },
-        { name: 'İspanya', flag: '🇪🇸', code: 'ES' },
-        { name: 'İtalya', flag: '🇮🇹', code: 'IT' },
-        { name: 'Hollanda', flag: '🇳🇱', code: 'NL' },
-        { name: 'Kanada', flag: '🇨🇦', code: 'CA' },
-        { name: 'Amerika Birleşik Devletleri', flag: '🇺🇸', code: 'US' },
-        { name: 'Avustralya', flag: '🇦🇺', code: 'AU' },
-    ];
+    private router = inject(Router);
+    private countryService = inject(CountryService);
 
-    constructor(private router: Router) { }
+    countries: Country[] = this.countryService.getAllCountries();
 
     selectCountry(country: Country) {
-        console.log('Selected country:', country);
+        this.countryService.selectCountry(country);
+        console.log('Seçilen ülke:', country.name, '- Vergi:', country.taxes.find(t => t.isDefault)?.name, country.taxes.find(t => t.isDefault)?.rate + '%');
         this.router.navigate(['/create-invoice']);
     }
 
     goToLogin() {
         this.router.navigate(['/login']);
+    }
+
+    getDefaultTax(country: Country) {
+        return country.taxes.find(t => t.isDefault) || country.taxes[0];
     }
 }

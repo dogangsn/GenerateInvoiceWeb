@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { InputComponent } from '../../shared/components/input/input.component';
-import { CardComponent } from '../../shared/components/card/card.component';
+import { CountryService } from '../../core/services/country.service';
+import { Country, TaxRate } from '../../core/models/country.model';
 
 @Component({
     selector: 'app-create-invoice',
@@ -13,13 +14,20 @@ import { CardComponent } from '../../shared/components/card/card.component';
     templateUrl: './create-invoice.component.html',
     styleUrl: './create-invoice.component.css'
 })
-export class CreateInvoiceComponent {
-    invoiceForm: FormGroup;
+export class CreateInvoiceComponent implements OnInit {
+    private fb = inject(FormBuilder);
+    private router = inject(Router);
+    private countryService = inject(CountryService);
 
-    constructor(private fb: FormBuilder, private router: Router) {
+    invoiceForm: FormGroup;
+    selectedCountry: Country | null = null;
+    selectedTaxRate: TaxRate | null = null;
+    availableTaxRates: TaxRate[] = [];
+
+    constructor() {
         this.invoiceForm = this.fb.group({
             date: [new Date().toISOString().split('T')[0], Validators.required],
-            time: ['14:30'],
+            time: [new Date().toTimeString().slice(0, 5)],
             customerName: ['', Validators.required],
             taxId: [''],
             address: [''],
@@ -28,6 +36,21 @@ export class CreateInvoiceComponent {
 
         // Add initial item
         this.addItem();
+    }
+
+    ngOnInit() {
+        // Seçili ülkeyi al
+        this.selectedCountry = this.countryService.getSelectedCountry();
+        
+        if (!this.selectedCountry) {
+            // Ülke seçilmemişse ana sayfaya yönlendir
+            this.router.navigate(['/']);
+            return;
+        }
+
+        // Vergi oranlarını ayarla
+        this.availableTaxRates = this.selectedCountry.taxes;
+        this.selectedTaxRate = this.countryService.getDefaultTaxRate();
     }
 
     get items() {
@@ -47,6 +70,12 @@ export class CreateInvoiceComponent {
         this.items.removeAt(index);
     }
 
+    onTaxRateChange(event: Event) {
+        const select = event.target as HTMLSelectElement;
+        const rate = parseFloat(select.value);
+        this.selectedTaxRate = this.availableTaxRates.find(t => t.rate === rate) || null;
+    }
+
     calculateSubtotal(): number {
         return this.items.controls.reduce((acc, item) => {
             const quantity = item.get('quantity')?.value || 0;
@@ -56,11 +85,16 @@ export class CreateInvoiceComponent {
     }
 
     calculateTax(): number {
-        return this.calculateSubtotal() * 0.20; // 20% KDV
+        const taxRate = this.selectedTaxRate?.rate || 0;
+        return this.calculateSubtotal() * (taxRate / 100);
     }
 
     calculateTotal(): number {
         return this.calculateSubtotal() + this.calculateTax();
+    }
+
+    formatCurrency(amount: number): string {
+        return this.countryService.formatCurrency(amount);
     }
 
     goBack() {
@@ -69,7 +103,16 @@ export class CreateInvoiceComponent {
 
     saveInvoice() {
         if (this.invoiceForm.valid) {
-            console.log('Invoice Data:', this.invoiceForm.value);
+            const invoiceData = {
+                ...this.invoiceForm.value,
+                country: this.selectedCountry?.code,
+                currency: this.selectedCountry?.currency.code,
+                taxRate: this.selectedTaxRate,
+                subtotal: this.calculateSubtotal(),
+                tax: this.calculateTax(),
+                total: this.calculateTotal()
+            };
+            console.log('Invoice Data:', invoiceData);
             // Save logic here
             alert('Fatura başarıyla oluşturuldu!');
             this.router.navigate(['/invoices']);

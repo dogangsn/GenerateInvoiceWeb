@@ -1,10 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { InputComponent } from '../../shared/components/input/input.component';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
+import { take } from 'rxjs/operators';
 
 @Component({
     selector: 'app-login',
@@ -17,6 +18,7 @@ export class LoginComponent implements OnInit {
     private router = inject(Router);
     private route = inject(ActivatedRoute);
     private authService = inject(AuthService);
+    private platformId = inject(PLATFORM_ID);
 
     email = '';
     password = '';
@@ -26,6 +28,17 @@ export class LoginComponent implements OnInit {
 
     ngOnInit() {
         this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+        
+        // Sadece browser'da ve sadece bir kez kontrol et
+        if (isPlatformBrowser(this.platformId)) {
+            // Kullanıcı zaten giriş yapmışsa dashboard'a yönlendir
+            this.authService.user$.pipe(take(1)).subscribe(user => {
+                if (user) {
+                    console.log('Kullanıcı zaten giriş yapmış:', user.displayName);
+                    this.router.navigate([this.returnUrl]);
+                }
+            });
+        }
     }
 
     async login() {
@@ -51,14 +64,21 @@ export class LoginComponent implements OnInit {
         this.isLoading = true;
         this.errorMessage = '';
         try {
-            await this.authService.loginWithGoogle();
-            this.router.navigate([this.returnUrl]);
+            const user = await this.authService.loginWithGoogle();
+            if (user) {
+                console.log('Google ile giriş başarılı:', user.displayName);
+                this.router.navigate([this.returnUrl]);
+            }
         } catch (error: any) {
             console.error('Login failed', error);
             this.errorMessage = this.getErrorMessage(error.code);
         } finally {
             this.isLoading = false;
         }
+    }
+
+    goBack() {
+        this.router.navigate(['/']);
     }
 
     private getErrorMessage(errorCode: string): string {
