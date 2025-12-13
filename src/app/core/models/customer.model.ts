@@ -1,8 +1,12 @@
 export interface Customer {
-    id: string;
+    id?: string;
     name: string;
     email: string;
     phone: string;
+    address: string;
+    taxId: string;
     country: string;
-    selected?: boolean;
+    userId: string;
+    createdAt: Date;
+    updatedAt: Date;
 }

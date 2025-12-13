@@ -1,11 +1,14 @@
-import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { InputComponent } from '../../shared/components/input/input.component';
 import { CountryService } from '../../core/services/country.service';
+import { InvoiceService } from '../../core/services/invoice.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Country, TaxRate } from '../../core/models/country.model';
+import { Invoice } from '../../core/models/invoice.model';
 
 @Component({
     selector: 'app-create-invoice',
@@ -18,11 +21,15 @@ export class CreateInvoiceComponent implements OnInit {
     private fb = inject(FormBuilder);
     private router = inject(Router);
     private countryService = inject(CountryService);
+    private invoiceService = inject(InvoiceService);
+    private authService = inject(AuthService);
+    private platformId = inject(PLATFORM_ID);
 
     invoiceForm: FormGroup;
     selectedCountry: Country | null = null;
     selectedTaxRate: TaxRate | null = null;
     availableTaxRates: TaxRate[] = [];
+    isSaving = false;
 
     constructor() {
         this.invoiceForm = this.fb.group({
@@ -101,23 +108,79 @@ export class CreateInvoiceComponent implements OnInit {
         this.router.navigate(['/']);
     }
 
-    saveInvoice() {
-        if (this.invoiceForm.valid) {
-            const invoiceData = {
-                ...this.invoiceForm.value,
-                country: this.selectedCountry?.code,
-                currency: this.selectedCountry?.currency.code,
-                taxRate: this.selectedTaxRate,
-                subtotal: this.calculateSubtotal(),
-                tax: this.calculateTax(),
-                total: this.calculateTotal()
-            };
-            console.log('Invoice Data:', invoiceData);
-            // Save logic here
-            alert('Fatura başarıyla oluşturuldu!');
+    private getInvoiceData(): Partial<Invoice> {
+        const formValue = this.invoiceForm.value;
+        return {
+            date: formValue.date,
+            time: formValue.time,
+            customerName: formValue.customerName,
+            customerTaxId: formValue.taxId,
+            customerAddress: formValue.address,
+            items: formValue.items,
+            countryCode: this.selectedCountry?.code || '',
+            countryName: this.selectedCountry?.name || '',
+            currencyCode: this.selectedCountry?.currency.code || '',
+            currencySymbol: this.selectedCountry?.currency.symbol || '',
+            taxName: this.selectedTaxRate?.name || '',
+            taxRate: this.selectedTaxRate?.rate || 0,
+            subtotal: this.calculateSubtotal(),
+            taxAmount: this.calculateTax(),
+            total: this.calculateTotal()
+        };
+    }
+
+    async saveDraft() {
+        if (!this.authService.currentUser) {
+            alert('Taslak kaydetmek için giriş yapmalısınız.');
+            this.router.navigate(['/login']);
+            return;
+        }
+
+        if (!this.invoiceForm.get('customerName')?.value) {
+            alert('Lütfen en az müşteri adını girin.');
+            return;
+        }
+
+        this.isSaving = true;
+        try {
+            const invoiceData = this.getInvoiceData();
+            invoiceData.status = 'Draft';
+            
+            const invoiceId = await this.invoiceService.createInvoice(invoiceData);
+            console.log('Taslak kaydedildi, ID:', invoiceId);
+            alert('Fatura taslağı başarıyla kaydedildi!');
             this.router.navigate(['/invoices']);
-        } else {
+        } catch (error: any) {
+            console.error('Taslak kaydetme hatası:', error);
+            alert('Taslak kaydedilemedi: ' + error.message);
+        } finally {
+            this.isSaving = false;
+        }
+    }
+
+    async printInvoice() {
+        if (!this.invoiceForm.valid) {
             alert('Lütfen tüm zorunlu alanları doldurun.');
+            return;
+        }
+
+        // Önce kaydet (kullanıcı giriş yaptıysa)
+        if (this.authService.currentUser) {
+            this.isSaving = true;
+            try {
+                const invoiceData = this.getInvoiceData();
+                invoiceData.status = 'Printed';
+                await this.invoiceService.createInvoice(invoiceData);
+            } catch (error) {
+                console.error('Fatura kaydetme hatası:', error);
+            } finally {
+                this.isSaving = false;
+            }
+        }
+
+        // Yazdır
+        if (isPlatformBrowser(this.platformId)) {
+            window.print();
         }
     }
 }

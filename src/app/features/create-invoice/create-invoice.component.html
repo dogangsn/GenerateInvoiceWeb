@@ -109,9 +109,16 @@
             </section>
 
             <!-- Actions -->
-            <div class="flex items-center justify-end gap-4 pt-8 border-t border-slate-200">
-                <app-button variant="secondary">Taslak Olarak Kaydet</app-button>
-                <app-button variant="primary" (click)="saveInvoice()">Faturayı Oluştur</app-button>
+            <div class="flex items-center justify-end gap-4 pt-8 border-t border-slate-200 print:hidden">
+                <app-button variant="secondary" (click)="saveDraft()" [disabled]="isSaving">
+                    {{ isSaving ? 'Kaydediliyor...' : 'Taslak Olarak Kaydet' }}
+                </app-button>
+                <app-button variant="primary" (click)="printInvoice()" [disabled]="isSaving">
+                    <span class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">print</span>
+                        Yazdır / PDF
+                    </span>
+                </app-button>
             </div>
         </div>
     </div>

@@ -5,74 +5,130 @@
             <h1 class="text-3xl font-bold text-slate-900">Müşteriler</h1>
             <p class="text-slate-500">Müşteri listenizi yönetin ve yeni müşteriler ekleyin.</p>
         </div>
-        <app-button variant="primary" icon="add">Yeni Müşteri Ekle</app-button>
+        <button (click)="toggleAddForm()"
+            class="inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition-colors">
+            <span class="material-symbols-outlined">{{ showAddForm ? 'close' : 'add' }}</span>
+            {{ showAddForm ? 'İptal' : 'Yeni Müşteri Ekle' }}
+        </button>
     </div>
 
-    <!-- Controls -->
-    <div class="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-slate-200 py-4">
-        <div class="flex items-center gap-3">
-            <div class="text-sm text-slate-600">
-                <span class="font-medium">2</span> müşteri seçildi
+    <!-- Add Customer Form -->
+    <div *ngIf="showAddForm" class="mb-6 p-6 bg-white rounded-xl border border-slate-200 shadow-sm">
+        <h2 class="text-lg font-bold text-slate-900 mb-4">Yeni Müşteri Ekle</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Müşteri Adı *</label>
+                <input type="text" [(ngModel)]="newCustomer.name" placeholder="Şirket veya kişi adı"
+                    class="w-full rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-1 focus:ring-primary" />
             </div>
-            <app-button variant="outline" icon="archive" class="!py-1.5 !px-3 !text-xs">Arşivle</app-button>
-            <app-button variant="danger" icon="delete"
-                class="!py-1.5 !px-3 !text-xs !bg-red-50 !text-red-600">Sil</app-button>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">E-Posta</label>
+                <input type="email" [(ngModel)]="newCustomer.email" placeholder="ornek@sirket.com"
+                    class="w-full rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-1 focus:ring-primary" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Telefon</label>
+                <input type="tel" [(ngModel)]="newCustomer.phone" placeholder="+90 555 123 4567"
+                    class="w-full rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-1 focus:ring-primary" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Vergi Numarası</label>
+                <input type="text" [(ngModel)]="newCustomer.taxId" placeholder="1234567890"
+                    class="w-full rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-1 focus:ring-primary" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Ülke</label>
+                <select [(ngModel)]="newCustomer.country"
+                    class="w-full rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-1 focus:ring-primary">
+                    <option value="Türkiye">🇹🇷 Türkiye</option>
+                    <option value="Almanya">🇩🇪 Almanya</option>
+                    <option value="Fransa">🇫🇷 Fransa</option>
+                    <option value="Birleşik Krallık">🇬🇧 Birleşik Krallık</option>
+                    <option value="ABD">🇺🇸 ABD</option>
+                    <option value="İspanya">🇪🇸 İspanya</option>
+                    <option value="İtalya">🇮🇹 İtalya</option>
+                    <option value="Hollanda">🇳🇱 Hollanda</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Adres</label>
+                <input type="text" [(ngModel)]="newCustomer.address" placeholder="Tam adres"
+                    class="w-full rounded-lg border-slate-300 text-sm focus:border-primary focus:ring-1 focus:ring-primary" />
+            </div>
         </div>
-        <div class="relative">
-            <span
-                class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-            <input type="text" placeholder="Müşteri ara..."
-                class="h-10 w-64 rounded-lg border border-slate-300 pl-10 text-sm focus:border-primary focus:ring-1 focus:ring-primary" />
+        <div class="mt-4 flex justify-end gap-3">
+            <button (click)="toggleAddForm()"
+                class="px-4 py-2 text-slate-600 hover:text-slate-900 font-medium transition-colors">
+                İptal
+            </button>
+            <button (click)="saveCustomer()" [disabled]="isSaving"
+                class="inline-flex items-center gap-2 bg-primary text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50">
+                <span *ngIf="isSaving" class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+                {{ isSaving ? 'Kaydediliyor...' : 'Kaydet' }}
+            </button>
         </div>
     </div>
 
-    <!-- Table -->
-    <div class="mt-6 flex-1 overflow-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        <table class="w-full min-w-[800px] text-left text-sm">
-            <thead class="bg-slate-50 text-xs uppercase text-slate-500">
-                <tr>
-                    <th class="w-12 px-4 py-3">
-                        <input type="checkbox"
-                            class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary" />
-                    </th>
-                    <th class="px-6 py-3 font-semibold">Müşteri Adı</th>
-                    <th class="px-6 py-3 font-semibold">E-Posta</th>
-                    <th class="px-6 py-3 font-semibold">Telefon</th>
-                    <th class="px-6 py-3 font-semibold">Ülke</th>
-                    <th class="px-6 py-3 font-semibold text-right">İşlemler</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200">
-                <tr *ngFor="let customer of customers" class="group hover:bg-slate-50">
-                    <td class="px-4 py-4">
-                        <input type="checkbox" [checked]="customer.selected"
-                            class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary" />
-                    </td>
-                    <td class="px-6 py-4 font-medium text-slate-900">{{ customer.name }}</td>
-                    <td class="px-6 py-4 text-slate-600">{{ customer.email }}</td>
-                    <td class="px-6 py-4 text-slate-600">{{ customer.phone }}</td>
-                    <td class="px-6 py-4 text-slate-600">{{ customer.country }}</td>
-                    <td class="px-6 py-4 text-right">
-                        <div class="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                            <button class="text-slate-400 hover:text-primary">
-                                <span class="material-symbols-outlined text-[20px]">edit</span>
-                            </button>
-                            <button class="text-slate-400 hover:text-red-600">
-                                <span class="material-symbols-outlined text-[20px]">delete</span>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination -->
-    <div class="mt-4 flex items-center justify-between text-sm text-slate-500">
-        <div>Toplam {{ customers.length }} müşteriden 1-5 arası gösteriliyor</div>
-        <div class="flex gap-2">
-            <button class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50">Önceki</button>
-            <button class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50">Sonraki</button>
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="flex-1 flex items-center justify-center">
+        <div class="text-center">
+            <span class="material-symbols-outlined text-4xl text-primary animate-spin">progress_activity</span>
+            <p class="mt-2 text-slate-500">Müşteriler yükleniyor...</p>
         </div>
     </div>
+
+    <!-- Content -->
+    <ng-container *ngIf="!isLoading">
+        <!-- Empty State -->
+        <div *ngIf="(customers$ | async)?.length === 0 && !showAddForm" class="flex-1 flex items-center justify-center">
+            <div class="text-center">
+                <span class="material-symbols-outlined text-6xl text-slate-300">group</span>
+                <h3 class="mt-4 text-lg font-semibold text-slate-900">Henüz müşteri yok</h3>
+                <p class="mt-2 text-slate-500">İlk müşterinizi eklemek için butona tıklayın.</p>
+                <button (click)="toggleAddForm()"
+                    class="mt-4 inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition-colors">
+                    <span class="material-symbols-outlined">add</span>
+                    Yeni Müşteri Ekle
+                </button>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div *ngIf="(customers$ | async)?.length" class="flex-1 overflow-auto rounded-lg border border-slate-200 bg-white shadow-sm">
+            <table class="w-full min-w-[800px] text-left text-sm">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500 sticky top-0">
+                    <tr>
+                        <th class="px-6 py-3 font-semibold">Müşteri Adı</th>
+                        <th class="px-6 py-3 font-semibold">E-Posta</th>
+                        <th class="px-6 py-3 font-semibold">Telefon</th>
+                        <th class="px-6 py-3 font-semibold">Vergi No</th>
+                        <th class="px-6 py-3 font-semibold">Ülke</th>
+                        <th class="px-6 py-3 font-semibold text-right">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    <tr *ngFor="let customer of customers$ | async" class="group hover:bg-slate-50">
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-slate-900">{{ customer.name }}</div>
+                            <div class="text-xs text-slate-500" *ngIf="customer.address">{{ customer.address }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-slate-600">{{ customer.email || '-' }}</td>
+                        <td class="px-6 py-4 text-slate-600">{{ customer.phone || '-' }}</td>
+                        <td class="px-6 py-4 text-slate-600 font-mono text-xs">{{ customer.taxId || '-' }}</td>
+                        <td class="px-6 py-4 text-slate-600">{{ customer.country }}</td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                <button class="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Düzenle">
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                                </button>
+                                <button (click)="deleteCustomer(customer)" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Sil">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </ng-container>
 </div>
