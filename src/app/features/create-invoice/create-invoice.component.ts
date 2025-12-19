@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { ButtonComponent } from '../../shared/components/button/button.component';
 import { InputComponent } from '../../shared/components/input/input.component';
 import { CardComponent } from '../../shared/components/card/card.component';
@@ -13,10 +13,16 @@ import { CardComponent } from '../../shared/components/card/card.component';
     templateUrl: './create-invoice.component.html',
     styleUrl: './create-invoice.component.css'
 })
-export class CreateInvoiceComponent {
+export class CreateInvoiceComponent implements OnInit {
     invoiceForm: FormGroup;
+    taxRate: number = 20; // Default tax rate
+    countryName: string = 'Türkiye'; // Default country
 
-    constructor(private fb: FormBuilder, private router: Router) {
+    constructor(
+        private fb: FormBuilder,
+        private router: Router,
+        private route: ActivatedRoute
+    ) {
         this.invoiceForm = this.fb.group({
             date: [new Date().toISOString().split('T')[0], Validators.required],
             time: ['14:30'],
@@ -28,6 +34,33 @@ export class CreateInvoiceComponent {
 
         // Add initial item
         this.addItem();
+    }
+
+    ngOnInit() {
+        this.route.queryParams.subscribe(params => {
+            if (params['taxRate']) {
+                this.taxRate = Number(params['taxRate']);
+            }
+            if (params['countryCode']) {
+                this.setCountryName(params['countryCode']);
+            }
+        });
+    }
+
+    setCountryName(code: string) {
+        const countryMap: { [key: string]: string } = {
+            'TR': 'Türkiye',
+            'DE': 'Almanya',
+            'FR': 'Fransa',
+            'UK': 'Birleşik Krallık',
+            'ES': 'İspanya',
+            'IT': 'İtalya',
+            'NL': 'Hollanda',
+            'CA': 'Kanada',
+            'US': 'ABD',
+            'AU': 'Avustralya'
+        };
+        this.countryName = countryMap[code] || code;
     }
 
     get items() {
@@ -56,7 +89,7 @@ export class CreateInvoiceComponent {
     }
 
     calculateTax(): number {
-        return this.calculateSubtotal() * 0.20; // 20% KDV
+        return this.calculateSubtotal() * (this.taxRate / 100);
     }
 
     calculateTotal(): number {

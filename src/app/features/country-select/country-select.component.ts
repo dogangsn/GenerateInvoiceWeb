@@ -10,6 +10,7 @@ interface Country {
     nameKey: string;
     flag: string;
     code: string;
+    taxRate: number;
 }
 
 @Component({
@@ -31,16 +32,16 @@ export class CountrySelectComponent implements OnInit {
     isLoading = signal(true);
 
     countries: Country[] = [
-        { nameKey: 'countries.turkey', flag: '🇹🇷', code: 'TR' },
-        { nameKey: 'countries.germany', flag: '🇩🇪', code: 'DE' },
-        { nameKey: 'countries.france', flag: '🇫🇷', code: 'FR' },
-        { nameKey: 'countries.uk', flag: '🇬🇧', code: 'UK' },
-        { nameKey: 'countries.spain', flag: '🇪🇸', code: 'ES' },
-        { nameKey: 'countries.italy', flag: '🇮🇹', code: 'IT' },
-        { nameKey: 'countries.netherlands', flag: '🇳🇱', code: 'NL' },
-        { nameKey: 'countries.canada', flag: '🇨🇦', code: 'CA' },
-        { nameKey: 'countries.usa', flag: '🇺🇸', code: 'US' },
-        { nameKey: 'countries.australia', flag: '🇦🇺', code: 'AU' },
+        { nameKey: 'countries.turkey', flag: '🇹🇷', code: 'TR', taxRate: 20 },
+        { nameKey: 'countries.germany', flag: '🇩🇪', code: 'DE', taxRate: 19 },
+        { nameKey: 'countries.france', flag: '🇫🇷', code: 'FR', taxRate: 20 },
+        { nameKey: 'countries.uk', flag: '🇬🇧', code: 'UK', taxRate: 20 },
+        { nameKey: 'countries.spain', flag: '🇪🇸', code: 'ES', taxRate: 21 },
+        { nameKey: 'countries.italy', flag: '🇮🇹', code: 'IT', taxRate: 22 },
+        { nameKey: 'countries.netherlands', flag: '🇳🇱', code: 'NL', taxRate: 21 },
+        { nameKey: 'countries.canada', flag: '🇨🇦', code: 'CA', taxRate: 5 },
+        { nameKey: 'countries.usa', flag: '🇺🇸', code: 'US', taxRate: 0 },
+        { nameKey: 'countries.australia', flag: '🇦🇺', code: 'AU', taxRate: 10 },
     ];
 
     async ngOnInit() {
@@ -64,7 +65,7 @@ export class CountrySelectComponent implements OnInit {
 
     selectCountry(country: Country) {
         console.log('Selected country:', country);
-        this.router.navigate(['/create-invoice']);
+        this.router.navigate(['/create-invoice'], { queryParams: { taxRate: country.taxRate, countryCode: country.code } });
     }
 
     goToLogin() {
