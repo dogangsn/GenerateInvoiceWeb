@@ -1,60 +1,82 @@
-<div class="min-h-screen flex items-center justify-center bg-slate-50">
-    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border border-slate-100">
+<div class="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+    <!-- Dil Seçici -->
+    <div class="fixed top-4 right-4 flex items-center gap-1 bg-white rounded-lg p-1 shadow-md border border-slate-200">
+        <button (click)="lang.setLanguage('tr')" 
+            [class]="'px-3 py-1.5 rounded-md text-sm font-medium transition-all ' + (lang.lang === 'tr' ? 'bg-primary text-white' : 'text-slate-600 hover:bg-slate-100')">
+            🇹🇷 TR
+        </button>
+        <button (click)="lang.setLanguage('en')" 
+            [class]="'px-3 py-1.5 rounded-md text-sm font-medium transition-all ' + (lang.lang === 'en' ? 'bg-primary text-white' : 'text-slate-600 hover:bg-slate-100')">
+            🇬🇧 EN
+        </button>
+    </div>
+
+    <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+        <!-- Logo -->
         <div class="text-center mb-8">
             <div class="flex items-center justify-center gap-2 text-primary mb-4">
                 <span class="material-symbols-outlined text-4xl">receipt_long</span>
                 <span class="text-2xl font-black tracking-tight">Fatura<span class="text-slate-900">Pro</span></span>
             </div>
-            <h1 class="text-2xl font-bold text-slate-900">Giriş Yap</h1>
-            <p class="text-slate-500 mt-2">Hesabınıza erişmek için bilgilerinizi girin.</p>
+            <h1 class="text-2xl font-bold text-slate-900">{{ lang.t('auth.welcome') }}</h1>
+            <p class="text-slate-500 mt-2">{{ lang.t('auth.enterCredentials') }}</p>
         </div>
 
+        <!-- Google Login -->
         <button (click)="loginWithGoogle()" [disabled]="isLoading"
-            class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-50 transition-colors mb-6 disabled:opacity-50 disabled:cursor-not-allowed">
+            class="w-full flex items-center justify-center gap-3 bg-white border-2 border-slate-200 text-slate-700 font-semibold py-3 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all mb-6 disabled:opacity-50 disabled:cursor-not-allowed">
             <img *ngIf="!isLoading" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="w-5 h-5">
-            <span *ngIf="isLoading" class="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-            {{ isLoading ? 'Giriş yapılıyor...' : 'Google ile Giriş Yap' }}
+            <span *ngIf="isLoading" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+            {{ isLoading ? lang.t('auth.loggingIn') : lang.t('auth.loginWithGoogle') }}
         </button>
 
-        <!-- Error Message -->
-        <div *ngIf="errorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+        <!-- Error -->
+        <div *ngIf="errorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
             {{ errorMessage }}
         </div>
 
+        <!-- Divider -->
         <div class="relative mb-6">
             <div class="absolute inset-0 flex items-center">
                 <div class="w-full border-t border-slate-200"></div>
             </div>
             <div class="relative flex justify-center text-sm">
-                <span class="px-2 bg-white text-slate-500">veya e-posta ile</span>
+                <span class="px-3 bg-white text-slate-400">{{ lang.t('auth.orWithEmail') }}</span>
             </div>
         </div>
 
-        <form (submit)="login()" class="space-y-4">
-            <app-input label="E-Posta" type="email" placeholder="ornek@sirket.com" [(ngModel)]="email" name="email"
-                icon="mail"></app-input>
+        <!-- Form -->
+        <form (ngSubmit)="login()" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">{{ lang.t('common.email') }}</label>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">mail</span>
+                    <input type="email" [(ngModel)]="email" name="email" placeholder="ornek@sirket.com"
+                        class="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-slate-200 focus:border-primary focus:ring-0 transition-colors">
+                </div>
+            </div>
 
-            <app-input label="Şifre" type="password" placeholder="••••••••" [(ngModel)]="password" name="password"
-                icon="lock"></app-input>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">{{ lang.t('auth.password') }}</label>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">lock</span>
+                    <input type="password" [(ngModel)]="password" name="password" placeholder="••••••••"
+                        class="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-slate-200 focus:border-primary focus:ring-0 transition-colors">
+                </div>
+            </div>
 
             <div class="flex items-center justify-between text-sm">
                 <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary">
-                    <span class="text-slate-600">Beni Hatırla</span>
+                    <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary">
+                    <span class="text-slate-600">{{ lang.t('auth.rememberMe') }}</span>
                 </label>
-                <a href="#" class="text-primary font-medium hover:underline">Şifremi Unuttum</a>
+                <a href="#" class="text-primary font-medium hover:underline">{{ lang.t('auth.forgotPassword') }}</a>
             </div>
 
-            <app-button variant="primary" [fullWidth]="true" type="submit">Giriş Yap</app-button>
-        </form>
-
-        <!-- Geri Dön -->
-        <div class="mt-6 pt-6 border-t border-slate-200 text-center">
-            <button (click)="goBack()" 
-                class="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 font-medium transition-colors">
-                <span class="material-symbols-outlined text-lg">arrow_back</span>
-                Ana Sayfaya Dön
+            <button type="submit" [disabled]="isLoading"
+                class="w-full h-12 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {{ lang.t('auth.login') }}
             </button>
-        </div>
+        </form>
     </div>
 </div>

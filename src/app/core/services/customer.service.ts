@@ -1,88 +1,105 @@
-import { Injectable, inject, PLATFORM_ID } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID, Injector } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { Firestore, collection, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, getDoc, serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, addDoc, updateDoc, deleteDoc, query, where, serverTimestamp } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
-import { Customer } from '../models/customer.model';
-import { Observable, of, BehaviorSubject } from 'rxjs';
+import { Customer, CustomerFormData } from '../models/customer.model';
+import { Observable, map, of, from, switchMap } from 'rxjs';
 
 @Injectable({
     providedIn: 'root'
 })
 export class CustomerService {
-    private firestore = inject(Firestore);
-    private auth = inject(Auth);
     private platformId = inject(PLATFORM_ID);
+    private injector = inject(Injector);
+    
+    // Lazy injection - sadece browser'da kullanılacak
+    private _firestore: Firestore | null = null;
+    private _auth: Auth | null = null;
 
-    private customersSubject = new BehaviorSubject<Customer[]>([]);
+    private get firestore(): Firestore | null {
+        if (!isPlatformBrowser(this.platformId)) return null;
+        if (!this._firestore) {
+            this._firestore = this.injector.get(Firestore);
+        }
+        return this._firestore;
+    }
+
+    private get auth(): Auth | null {
+        if (!isPlatformBrowser(this.platformId)) return null;
+        if (!this._auth) {
+            this._auth = this.injector.get(Auth);
+        }
+        return this._auth;
+    }
 
     /**
-     * Kullanıcının tüm müşterilerini getirir (realtime)
+     * Kullanıcının müşterilerini gerçek zamanlı olarak getirir
      */
     getCustomers(): Observable<Customer[]> {
-        if (!isPlatformBrowser(this.platformId)) {
+        // SSR'da boş döndür
+        if (!isPlatformBrowser(this.platformId) || !this.firestore || !this.auth) {
             return of([]);
         }
 
-        const userId = this.auth.currentUser?.uid;
-        if (!userId) return of([]);
+        const auth = this.auth;
+        const firestore = this.firestore;
 
-        const customersRef = collection(this.firestore, 'customers');
-        const q = query(customersRef, where('userId', '==', userId));
+        // Auth state hazır olana kadar bekle
+        return from(auth.authStateReady()).pipe(
+            switchMap(() => {
+                const userId = auth.currentUser?.uid;
+                if (!userId) {
+                    return of([]);
+                }
 
-        onSnapshot(q, (snapshot) => {
-            const customers: Customer[] = [];
-            snapshot.forEach((doc) => {
-                customers.push({ id: doc.id, ...doc.data() } as Customer);
-            });
-            // İsme göre sırala
-            customers.sort((a, b) => a.name.localeCompare(b.name));
-            this.customersSubject.next(customers);
-        }, (error) => {
-            console.error('Firestore customer listener error:', error);
-        });
+                const customersCol = collection(firestore, 'customers');
+                const q = query(customersCol, where('userId', '==', userId));
 
-        return this.customersSubject.asObservable();
+                return collectionData(q, { idField: 'id' }).pipe(
+                    map(customers => {
+                        // Client-side sıralama (en yeni önce)
+                        return (customers as Customer[]).sort((a, b) => {
+                            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                            return dateB - dateA;
+                        });
+                    })
+                );
+            })
+        );
     }
 
     /**
-     * Tek bir müşteriyi getirir
+     * Yeni müşteri ekler
      */
-    async getCustomer(id: string): Promise<Customer | null> {
-        if (!isPlatformBrowser(this.platformId)) return null;
-
-        const customerRef = doc(this.firestore, 'customers', id);
-        const snapshot = await getDoc(customerRef);
-
-        if (snapshot.exists()) {
-            return { id: snapshot.id, ...snapshot.data() } as Customer;
+    async addCustomer(data: CustomerFormData): Promise<string> {
+        if (!isPlatformBrowser(this.platformId) || !this.firestore || !this.auth) {
+            throw new Error('Bu işlem sadece tarayıcıda yapılabilir');
         }
-        return null;
-    }
 
-    /**
-     * Yeni müşteri oluşturur
-     */
-    async createCustomer(customerData: Partial<Customer>): Promise<string> {
+        await this.auth.authStateReady();
         const userId = this.auth.currentUser?.uid;
-        if (!userId) throw new Error('Kullanıcı girişi yapılmamış');
+        if (!userId) throw new Error('Kullanıcı giriş yapmamış');
 
-        const customersRef = collection(this.firestore, 'customers');
+        const customersCol = collection(this.firestore, 'customers');
 
-        const customer = {
-            ...customerData,
+        const customerData = {
+            ...data,
             userId,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         };
 
-        const docRef = await addDoc(customersRef, customer);
+        const docRef = await addDoc(customersCol, customerData);
         return docRef.id;
     }
 
     /**
-     * Müşteriyi günceller
+     * Müşteri bilgilerini günceller
      */
-    async updateCustomer(id: string, data: Partial<Customer>): Promise<void> {
+    async updateCustomer(id: string, data: Partial<CustomerFormData>): Promise<void> {
+        if (!isPlatformBrowser(this.platformId) || !this.firestore) return;
+
         const customerRef = doc(this.firestore, 'customers', id);
         await updateDoc(customerRef, {
             ...data,
@@ -91,10 +108,22 @@ export class CustomerService {
     }
 
     /**
-     * Müşteriyi siler
+     * Müşteri siler
      */
     async deleteCustomer(id: string): Promise<void> {
+        if (!isPlatformBrowser(this.platformId) || !this.firestore) return;
+
         const customerRef = doc(this.firestore, 'customers', id);
         await deleteDoc(customerRef);
+    }
+
+    /**
+     * Birden fazla müşteri siler
+     */
+    async deleteCustomers(ids: string[]): Promise<void> {
+        if (!isPlatformBrowser(this.platformId) || !this.firestore) return;
+
+        const deletePromises = ids.map(id => this.deleteCustomer(id));
+        await Promise.all(deletePromises);
     }
 }

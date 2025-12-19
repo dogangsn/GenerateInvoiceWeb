@@ -2,9 +2,11 @@ import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { Auth, GoogleAuthProvider, signInWithPopup, signOut, user, User, signInWithEmailAndPassword, createUserWithEmailAndPassword } from '@angular/fire/auth';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { UserService } from './user.service';
 import { UserProfile } from '../models/user.model';
+
+const USER_PROFILE_CACHE_KEY = 'userProfile';
 
 @Injectable({
     providedIn: 'root'
@@ -16,55 +18,124 @@ export class AuthService {
     private platformId = inject(PLATFORM_ID);
 
     user$: Observable<User | null> = user(this.auth);
-    userProfile: UserProfile | null = null;
+    
+    private userProfileSubject = new BehaviorSubject<UserProfile | null>(null);
+    userProfile$ = this.userProfileSubject.asObservable();
+
+    get userProfile(): UserProfile | null {
+        return this.userProfileSubject.value;
+    }
 
     get currentUser(): User | null {
         return this.auth.currentUser;
+    }
+
+    constructor() {
+        // Sayfa yüklendiğinde cache'den profili yükle
+        this.loadCachedProfile();
+        
+        // Auth state değişikliklerini dinle
+        this.user$.subscribe(async (firebaseUser) => {
+            if (firebaseUser) {
+                // Kullanıcı giriş yapmış, profili yükle (cache'de yoksa)
+                if (!this.userProfile) {
+                    await this.loadUserProfile();
+                }
+            } else {
+                // Kullanıcı çıkış yapmış, cache'i temizle
+                this.clearCachedProfile();
+            }
+        });
+    }
+
+    private loadCachedProfile(): void {
+        if (!isPlatformBrowser(this.platformId)) return;
+        
+        try {
+            const cached = localStorage.getItem(USER_PROFILE_CACHE_KEY);
+            if (cached) {
+                const profile = JSON.parse(cached) as UserProfile;
+                this.userProfileSubject.next(profile);
+            }
+        } catch (error) {
+            console.error('Cache okuma hatası:', error);
+            localStorage.removeItem(USER_PROFILE_CACHE_KEY);
+        }
+    }
+
+    private cacheProfile(profile: UserProfile): void {
+        if (!isPlatformBrowser(this.platformId)) return;
+        
+        try {
+            localStorage.setItem(USER_PROFILE_CACHE_KEY, JSON.stringify(profile));
+            this.userProfileSubject.next(profile);
+        } catch (error) {
+            console.error('Cache yazma hatası:', error);
+        }
+    }
+
+    private clearCachedProfile(): void {
+        if (!isPlatformBrowser(this.platformId)) return;
+        
+        localStorage.removeItem(USER_PROFILE_CACHE_KEY);
+        this.userProfileSubject.next(null);
     }
 
     async loginWithGoogle(): Promise<User | null> {
         if (!isPlatformBrowser(this.platformId)) return null;
         
         const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
+        
         const result = await signInWithPopup(this.auth, provider);
-        
-        if (result.user) {
-            // Kullanıcıyı Firestore'a kaydet
-            try {
-                this.userProfile = await this.userService.createOrUpdateUserProfile(result.user);
-                console.log('Kullanıcı profili kaydedildi:', this.userProfile);
-            } catch (error) {
-                console.error('Profil kaydetme hatası (devam ediliyor):', error);
-            }
+        if (result?.user) {
+            // Kullanıcıyı Firestore'a kaydet ve cache'le
+            const profile = await this.userService.createOrUpdateUserProfile(result.user);
+            this.cacheProfile(profile);
+            return result.user;
         }
-        
-        return result.user;
+        return null;
     }
 
     async loginWithEmail(email: string, password: string) {
         const result = await signInWithEmailAndPassword(this.auth, email, password);
-        // Kullanıcıyı Firestore'a kaydet
-        this.userProfile = await this.userService.createOrUpdateUserProfile(result.user);
+        // Kullanıcıyı Firestore'a kaydet ve cache'le
+        const profile = await this.userService.createOrUpdateUserProfile(result.user);
+        this.cacheProfile(profile);
         return result.user;
     }
 
     async registerWithEmail(email: string, password: string) {
         const result = await createUserWithEmailAndPassword(this.auth, email, password);
-        // Yeni kullanıcıyı Firestore'a kaydet
-        this.userProfile = await this.userService.createOrUpdateUserProfile(result.user);
+        // Yeni kullanıcıyı Firestore'a kaydet ve cache'le
+        const profile = await this.userService.createOrUpdateUserProfile(result.user);
+        this.cacheProfile(profile);
         return result.user;
     }
 
     async logout() {
+        this.clearCachedProfile();
         await signOut(this.auth);
-        this.userProfile = null;
-        this.router.navigate(['/login']);
+        this.router.navigate(['/']);
     }
 
     async loadUserProfile(): Promise<UserProfile | null> {
         if (this.currentUser) {
-            this.userProfile = await this.userService.getUserProfile(this.currentUser.uid);
+            const profile = await this.userService.getUserProfile(this.currentUser.uid);
+            if (profile) {
+                this.cacheProfile(profile);
+            }
+            return profile;
         }
-        return this.userProfile;
+        return null;
+    }
+
+    /**
+     * Cache'deki profili günceller (profil değişikliklerinde çağrılır)
+     */
+    updateCachedProfile(profile: UserProfile): void {
+        this.cacheProfile(profile);
     }
 }

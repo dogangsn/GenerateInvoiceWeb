@@ -1,85 +1,333 @@
-<div class="flex h-full flex-col overflow-hidden p-8">
+<div class="flex h-full flex-col overflow-hidden p-8 bg-slate-50">
+    <!-- Header -->
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-3xl font-bold text-slate-900">Faturalarım</h1>
-            <p class="text-slate-500">Kaydedilmiş faturalarınızı yönetin ve düzenleyin.</p>
+            <h1 class="text-2xl font-bold text-slate-900">Faturalar</h1>
+            <p class="text-slate-500">Faturalarınızı yönetin ve takip edin.</p>
         </div>
-        <app-button variant="primary" icon="add" (click)="createNewInvoice()">Yeni Fatura Oluştur</app-button>
+        <button (click)="openAddModal()"
+            class="bg-primary text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg shadow-primary/25 flex items-center gap-2">
+            <span class="material-symbols-outlined text-[20px]">add</span>
+            Yeni Fatura
+        </button>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex flex-wrap items-center justify-between gap-4 bg-white rounded-xl border border-slate-200 p-4 mb-6">
+        <div class="flex items-center gap-3">
+            <!-- Status Filter -->
+            <select [(ngModel)]="statusFilter" (ngModelChange)="filterInvoices()"
+                class="h-10 px-4 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20">
+                <option value="all">Tüm Durumlar</option>
+                <option value="draft">Taslak</option>
+                <option value="sent">Gönderildi</option>
+                <option value="paid">Ödendi</option>
+                <option value="overdue">Gecikmiş</option>
+                <option value="cancelled">İptal</option>
+            </select>
+
+            <div *ngIf="selectedIds.size > 0" class="flex items-center gap-3 ml-3 pl-3 border-l border-slate-200">
+                <span class="text-sm text-slate-600">
+                    <span class="font-semibold text-primary">{{ selectedIds.size }}</span> fatura seçildi
+                </span>
+                <button (click)="deleteSelected()"
+                    class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                    Sil
+                </button>
+            </div>
+        </div>
+        <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+            <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="filterInvoices()" placeholder="Fatura ara..."
+                class="h-10 w-72 rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all" />
+        </div>
     </div>
 
     <!-- Loading State -->
     <div *ngIf="isLoading" class="flex-1 flex items-center justify-center">
-        <div class="text-center">
+        <div class="flex flex-col items-center gap-3">
             <span class="material-symbols-outlined text-4xl text-primary animate-spin">progress_activity</span>
-            <p class="mt-2 text-slate-500">Faturalar yükleniyor...</p>
+            <p class="text-slate-500">Faturalar yükleniyor...</p>
         </div>
     </div>
 
-    <!-- Content -->
-    <ng-container *ngIf="!isLoading">
-        <!-- Empty State -->
-        <div *ngIf="(invoices$ | async)?.length === 0" class="flex-1 flex items-center justify-center">
-            <div class="text-center">
-                <span class="material-symbols-outlined text-6xl text-slate-300">receipt_long</span>
-                <h3 class="mt-4 text-lg font-semibold text-slate-900">Henüz fatura yok</h3>
-                <p class="mt-2 text-slate-500">İlk faturanızı oluşturmak için butona tıklayın.</p>
-                <button (click)="createNewInvoice()"
-                    class="mt-4 inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition-colors">
-                    <span class="material-symbols-outlined">add</span>
-                    Yeni Fatura Oluştur
-                </button>
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && invoices.length === 0" class="flex-1 flex items-center justify-center">
+        <div class="text-center">
+            <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="material-symbols-outlined text-4xl text-slate-400">description</span>
+            </div>
+            <h3 class="text-lg font-semibold text-slate-900 mb-2">Henüz fatura yok</h3>
+            <p class="text-slate-500 mb-4">İlk faturanızı oluşturarak başlayın</p>
+            <button (click)="openAddModal()"
+                class="bg-primary text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all inline-flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px]">add</span>
+                Fatura Oluştur
+            </button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div *ngIf="!isLoading && invoices.length > 0" class="flex-1 overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table class="w-full min-w-[900px] text-left text-sm">
+            <thead class="bg-slate-50 text-xs uppercase text-slate-500 sticky top-0">
+                <tr>
+                    <th class="w-12 px-4 py-4">
+                        <input type="checkbox" [checked]="isAllSelected" (change)="toggleSelectAll()"
+                            class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" />
+                    </th>
+                    <th class="px-6 py-4 font-semibold">Fatura No</th>
+                    <th class="px-6 py-4 font-semibold">Müşteri</th>
+                    <th class="px-6 py-4 font-semibold">Tarih</th>
+                    <th class="px-6 py-4 font-semibold">Vade</th>
+                    <th class="px-6 py-4 font-semibold text-right">Tutar</th>
+                    <th class="px-6 py-4 font-semibold">Durum</th>
+                    <th class="px-6 py-4 font-semibold text-right">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                <tr *ngFor="let invoice of filteredInvoices"
+                    class="group hover:bg-slate-50 transition-colors"
+                    [class.bg-primary/5]="isSelected(invoice.id!)">
+                    <td class="px-4 py-4">
+                        <input type="checkbox" [checked]="isSelected(invoice.id!)" (change)="toggleSelection(invoice.id!)"
+                            class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" />
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="font-semibold text-slate-900">{{ invoice.invoiceNo }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div>
+                            <p class="font-medium text-slate-900">{{ invoice.customerName }}</p>
+                            <p *ngIf="invoice.customerEmail" class="text-xs text-slate-400">{{ invoice.customerEmail }}</p>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-600">{{ invoice.date | date:'dd.MM.yyyy' }}</td>
+                    <td class="px-6 py-4 text-slate-600">{{ invoice.dueDate | date:'dd.MM.yyyy' }}</td>
+                    <td class="px-6 py-4 text-right">
+                        <span class="font-bold text-slate-900">₺{{ invoice.total | number:'1.2-2' }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="relative group/status">
+                            <button [class]="'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ' + getStatusColor(invoice.status)">
+                                {{ getStatusLabel(invoice.status) }}
+                                <span class="material-symbols-outlined text-[14px]">expand_more</span>
+                            </button>
+                            <!-- Status Dropdown -->
+                            <div class="absolute left-0 top-full mt-1 w-36 bg-white rounded-lg shadow-xl border border-slate-100 opacity-0 invisible group-hover/status:opacity-100 group-hover/status:visible transition-all z-10 overflow-hidden">
+                                <button *ngFor="let status of statusOptions"
+                                    (click)="updateStatus(invoice, status.value)"
+                                    [class]="'w-full px-3 py-2 text-left text-xs font-medium hover:bg-slate-50 flex items-center gap-2 ' + (invoice.status === status.value ? 'bg-slate-50' : '')">
+                                    <span [class]="'w-2 h-2 rounded-full ' + status.color.split(' ')[0]"></span>
+                                    {{ status.label }}
+                                </button>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button (click)="openEditModal(invoice)"
+                                class="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                                <span class="material-symbols-outlined text-[20px]">edit</span>
+                            </button>
+                            <button (click)="confirmDelete(invoice.id!)"
+                                class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                <span class="material-symbols-outlined text-[20px]">delete</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- No Results -->
+    <div *ngIf="!isLoading && invoices.length > 0 && filteredInvoices.length === 0"
+        class="flex-1 flex items-center justify-center bg-white rounded-xl border border-slate-200">
+        <div class="text-center">
+            <span class="material-symbols-outlined text-4xl text-slate-300">search_off</span>
+            <p class="text-slate-500 mt-2">Aramanızla eşleşen fatura bulunamadı</p>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" (click)="closeModal()"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden animate-scale-in">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-6 border-b border-slate-100">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900">{{ isEditing ? 'Fatura Düzenle' : 'Yeni Fatura' }}</h2>
+                <p class="text-sm text-slate-500">{{ formData.invoiceNo }}</p>
+            </div>
+            <button (click)="closeModal()" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                <span class="material-symbols-outlined text-slate-400">close</span>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-6 overflow-y-auto max-h-[60vh] space-y-6">
+            <!-- Customer & Dates -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Customer Select -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Müşteri *</label>
+                    <select (change)="onCustomerSelect($any($event.target).value)"
+                        class="w-full h-11 px-4 rounded-xl border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-white">
+                        <option value="">-- Müşteri Seçin --</option>
+                        <option *ngFor="let customer of customers" [value]="customer.id" [selected]="formData.customerId === customer.id">
+                            {{ customer.name }}
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Customer Info (if selected) -->
+                <div *ngIf="formData.customerName" class="md:col-span-2 p-4 bg-slate-50 rounded-xl">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="text-slate-500">Müşteri:</span>
+                            <span class="font-medium text-slate-900 ml-2">{{ formData.customerName }}</span>
+                        </div>
+                        <div *ngIf="formData.customerEmail">
+                            <span class="text-slate-500">E-posta:</span>
+                            <span class="text-slate-700 ml-2">{{ formData.customerEmail }}</span>
+                        </div>
+                        <div *ngIf="formData.customerTaxId">
+                            <span class="text-slate-500">Vergi No:</span>
+                            <span class="text-slate-700 ml-2">{{ formData.customerTaxId }}</span>
+                        </div>
+                        <div *ngIf="formData.customerAddress">
+                            <span class="text-slate-500">Adres:</span>
+                            <span class="text-slate-700 ml-2">{{ formData.customerAddress }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Fatura Tarihi</label>
+                    <input type="date" [(ngModel)]="formData.date"
+                        class="w-full h-11 px-4 rounded-xl border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Vade Tarihi</label>
+                    <input type="date" [(ngModel)]="formData.dueDate"
+                        class="w-full h-11 px-4 rounded-xl border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
+                </div>
+            </div>
+
+            <!-- Invoice Items -->
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <label class="text-sm font-medium text-slate-700">Fatura Kalemleri</label>
+                    <button (click)="addItem()" type="button"
+                        class="text-sm text-primary font-medium hover:underline flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[18px]">add</span>
+                        Kalem Ekle
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <div *ngFor="let item of formData.items; let i = index"
+                        class="grid grid-cols-12 gap-3 p-4 bg-slate-50 rounded-xl">
+                        <div class="col-span-5">
+                            <input type="text" [(ngModel)]="item.description" placeholder="Açıklama"
+                                class="w-full h-10 px-3 rounded-lg border border-slate-200 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                        </div>
+                        <div class="col-span-2">
+                            <input type="number" [(ngModel)]="item.quantity" placeholder="Adet" min="1"
+                                class="w-full h-10 px-3 rounded-lg border border-slate-200 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                        </div>
+                        <div class="col-span-2">
+                            <input type="number" [(ngModel)]="item.unitPrice" placeholder="Birim Fiyat" min="0"
+                                class="w-full h-10 px-3 rounded-lg border border-slate-200 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                        </div>
+                        <div class="col-span-2">
+                            <select [(ngModel)]="item.taxRate"
+                                class="w-full h-10 px-2 rounded-lg border border-slate-200 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white">
+                                <option [value]="0">%0</option>
+                                <option [value]="1">%1</option>
+                                <option [value]="8">%8</option>
+                                <option [value]="18">%18</option>
+                                <option [value]="20">%20</option>
+                            </select>
+                        </div>
+                        <div class="col-span-1 flex items-center justify-center">
+                            <button (click)="removeItem(i)" *ngIf="formData.items.length > 1"
+                                class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                <span class="material-symbols-outlined text-[18px]">close</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Totals -->
+                <div class="mt-4 p-4 bg-slate-900 rounded-xl text-white">
+                    <div class="flex justify-between text-sm mb-2">
+                        <span class="text-slate-400">Ara Toplam</span>
+                        <span>₺{{ formSubtotal | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm mb-2">
+                        <span class="text-slate-400">KDV</span>
+                        <span>₺{{ formTaxTotal | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-between text-lg font-bold pt-2 border-t border-slate-700">
+                        <span>Toplam</span>
+                        <span>₺{{ formTotal | number:'1.2-2' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Notlar</label>
+                <textarea [(ngModel)]="formData.notes" rows="2" placeholder="Fatura notları..."
+                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"></textarea>
             </div>
         </div>
 
-        <!-- Table -->
-        <div *ngIf="(invoices$ | async)?.length" class="mt-6 flex-1 overflow-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-            <table class="w-full min-w-[800px] text-left text-sm">
-                <thead class="bg-slate-50 text-xs uppercase text-slate-500 sticky top-0">
-                    <tr>
-                        <th class="px-6 py-3 font-semibold">Fatura No</th>
-                        <th class="px-6 py-3 font-semibold">Müşteri</th>
-                        <th class="px-6 py-3 font-semibold">Ülke</th>
-                        <th class="px-6 py-3 font-semibold">Toplam</th>
-                        <th class="px-6 py-3 font-semibold">Tarih</th>
-                        <th class="px-6 py-3 font-semibold">Durum</th>
-                        <th class="px-6 py-3"></th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                    <tr *ngFor="let invoice of invoices$ | async" class="group hover:bg-slate-50">
-                        <td class="px-6 py-4 font-mono text-sm text-slate-600">{{ invoice.number }}</td>
-                        <td class="px-6 py-4">
-                            <div class="font-medium text-slate-900">{{ invoice.customerName }}</div>
-                            <div class="text-xs text-slate-500" *ngIf="invoice.customerTaxId">{{ invoice.customerTaxId }}</div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="inline-flex items-center gap-1.5">
-                                <span class="text-lg">{{ invoice.countryCode === 'TR' ? '🇹🇷' : invoice.countryCode === 'DE' ? '🇩🇪' : invoice.countryCode === 'FR' ? '🇫🇷' : invoice.countryCode === 'GB' ? '🇬🇧' : invoice.countryCode === 'US' ? '🇺🇸' : '🌍' }}</span>
-                                <span class="text-xs text-slate-500">{{ invoice.currencyCode }}</span>
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 font-semibold text-slate-900">
-                            {{ invoice.currencySymbol }}{{ invoice.total | number:'1.2-2' }}
-                        </td>
-                        <td class="px-6 py-4 text-slate-500">{{ invoice.date }}</td>
-                        <td class="px-6 py-4">
-                            <span [class]="'rounded-full px-2.5 py-0.5 text-xs font-bold ' + getStatusColor(invoice.status)">
-                                {{ getStatusText(invoice.status) }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                                <button class="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Görüntüle">
-                                    <span class="material-symbols-outlined text-[18px]">visibility</span>
-                                </button>
-                                <button (click)="deleteInvoice(invoice)" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Sil">
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Modal Footer -->
+        <div class="flex items-center justify-between p-6 border-t border-slate-100 bg-slate-50">
+            <select [(ngModel)]="formData.status"
+                class="h-10 px-4 rounded-lg border border-slate-200 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white">
+                <option *ngFor="let status of statusOptions" [value]="status.value">{{ status.label }}</option>
+            </select>
+            <div class="flex items-center gap-3">
+                <button (click)="closeModal()"
+                    class="px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-xl transition-colors">
+                    İptal
+                </button>
+                <button (click)="saveInvoice()" [disabled]="isSaving || !formData.customerName || formData.items.length === 0"
+                    class="px-5 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                    <span *ngIf="isSaving" class="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                    {{ isSaving ? 'Kaydediliyor...' : (isEditing ? 'Güncelle' : 'Kaydet') }}
+                </button>
+            </div>
         </div>
-    </ng-container>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div *ngIf="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" (click)="cancelDelete()"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-scale-in">
+        <div class="text-center">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="material-symbols-outlined text-3xl text-red-600">delete</span>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">Faturayı Sil</h3>
+            <p class="text-slate-500 text-sm mb-6">Bu faturayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.</p>
+            <div class="flex gap-3">
+                <button (click)="cancelDelete()"
+                    class="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                    İptal
+                </button>
+                <button (click)="deleteInvoice()"
+                    class="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors">
+                    Sil
+                </button>
+            </div>
+        </div>
+    </div>
 </div>

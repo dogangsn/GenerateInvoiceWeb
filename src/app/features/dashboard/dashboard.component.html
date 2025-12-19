@@ -1,0 +1,225 @@
+<div class="p-8 space-y-6 bg-slate-50 min-h-screen">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Hoş Geldiniz, {{ userName }}! 👋</h1>
+            <p class="text-slate-500 mt-1">{{ currentDate | date:'d MMMM yyyy, EEEE':'':'tr' }}</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <!-- Kullanıcı Bilgisi -->
+            <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+                <div class="w-9 h-9 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center shadow-md">
+                    <span class="material-symbols-outlined text-white text-lg">person</span>
+                </div>
+                <div class="text-left">
+                    <p class="text-sm font-semibold text-slate-900">{{ userName }}</p>
+                    <p class="text-xs text-slate-500">{{ userEmail }}</p>
+                </div>
+                <button (click)="logout()" 
+                    class="ml-2 p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Çıkış Yap">
+                    <span class="material-symbols-outlined text-[20px]">logout</span>
+                </button>
+            </div>
+            
+            <!-- Yeni Fatura Butonu -->
+            <button routerLink="/create-invoice"
+                class="bg-primary text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg shadow-primary/25 flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px]">add</span>
+                Yeni Fatura
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-500">Toplam Gelir</p>
+                    <p class="text-2xl font-bold text-slate-900 mt-1">₺{{ stats.totalRevenue | number:'1.0-0' }}</p>
+                    <div class="flex items-center gap-1 mt-2">
+                        <span class="material-symbols-outlined text-green-500 text-[16px]">trending_up</span>
+                        <span class="text-xs font-semibold text-green-500">+{{ stats.monthlyGrowth }}%</span>
+                        <span class="text-xs text-slate-400">bu ay</span>
+                    </div>
+                </div>
+                <div class="w-14 h-14 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                    <span class="material-symbols-outlined text-white text-2xl">payments</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-500">Toplam Fatura</p>
+                    <p class="text-2xl font-bold text-slate-900 mt-1">{{ stats.totalInvoices }}</p>
+                    <p class="text-xs text-slate-400 mt-2">Tüm zamanlar</p>
+                </div>
+                <div class="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                    <span class="material-symbols-outlined text-white text-2xl">description</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-500">Bekleyen</p>
+                    <p class="text-2xl font-bold text-orange-500 mt-1">{{ stats.pendingInvoices }}</p>
+                    <p class="text-xs text-slate-400 mt-2">Ödeme bekliyor</p>
+                </div>
+                <div class="w-14 h-14 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30">
+                    <span class="material-symbols-outlined text-white text-2xl">schedule</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-slate-500">Ödenen</p>
+                    <p class="text-2xl font-bold text-green-500 mt-1">{{ stats.paidInvoices }}</p>
+                    <p class="text-xs text-slate-400 mt-2">Bu ay</p>
+                </div>
+                <div class="w-14 h-14 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/30">
+                    <span class="material-symbols-outlined text-white text-2xl">check_circle</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Revenue Chart -->
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Gelir Grafiği</h2>
+                    <p class="text-sm text-slate-500">Aylık gelir takibi</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button class="px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 rounded-lg">2024</button>
+                    <button class="px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-lg">2023</button>
+                </div>
+            </div>
+            <div class="h-72">
+                <canvas #revenueChart></canvas>
+            </div>
+        </div>
+
+        <!-- Status Chart -->
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            <div class="mb-4">
+                <h2 class="text-lg font-bold text-slate-900">Fatura Durumları</h2>
+                <p class="text-sm text-slate-500">Dağılım grafiği</p>
+            </div>
+            <div class="h-64 flex items-center justify-center">
+                <canvas #statusChart></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Recent Invoices -->
+        <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div class="flex items-center justify-between p-6 border-b border-slate-100">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900">Son Faturalar</h2>
+                    <p class="text-sm text-slate-500">Son işlemleriniz</p>
+                </div>
+                <a routerLink="/invoices" class="text-sm text-primary font-medium hover:underline flex items-center gap-1">
+                    Tümü
+                    <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </a>
+            </div>
+            <div class="divide-y divide-slate-100">
+                <div *ngFor="let invoice of recentInvoices" 
+                    class="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-4">
+                        <div class="w-11 h-11 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-slate-500">receipt</span>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-slate-900">{{ invoice.customerName }}</p>
+                            <p class="text-sm text-slate-500">{{ invoice.invoiceNo }}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-slate-900">₺{{ invoice.amount | number:'1.2-2' }}</p>
+                        <span [class]="getStatusClass(invoice.status)" class="text-xs font-semibold px-2.5 py-1 rounded-full">
+                            {{ getStatusText(invoice.status) }}
+                        </span>
+                    </div>
+                </div>
+
+                <div *ngIf="recentInvoices.length === 0" class="p-12 text-center">
+                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="material-symbols-outlined text-3xl text-slate-400">description</span>
+                    </div>
+                    <p class="text-slate-500 font-medium">Henüz fatura bulunmuyor</p>
+                    <button routerLink="/create-invoice" class="text-primary font-semibold text-sm mt-2 hover:underline">
+                        İlk faturanızı oluşturun →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="space-y-5">
+            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <h2 class="text-lg font-bold text-slate-900 mb-4">Hızlı İşlemler</h2>
+                <div class="space-y-3">
+                    <button routerLink="/create-invoice"
+                        class="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-slate-200 hover:border-primary hover:bg-primary/5 transition-all text-left group">
+                        <div class="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/30 transition-all">
+                            <span class="material-symbols-outlined text-primary group-hover:text-white transition-colors">add_circle</span>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-slate-900">Yeni Fatura</p>
+                            <p class="text-xs text-slate-500">Hızlıca fatura oluşturun</p>
+                        </div>
+                    </button>
+
+                    <button routerLink="/customers"
+                        class="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-violet-300 hover:bg-violet-50 transition-all text-left">
+                        <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-violet-600">person_add</span>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-slate-900">Müşteri Ekle</p>
+                            <p class="text-xs text-slate-500">Yeni müşteri kaydedin</p>
+                        </div>
+                    </button>
+
+                    <button routerLink="/reports"
+                        class="w-full flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-amber-300 hover:bg-amber-50 transition-all text-left">
+                        <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                            <span class="material-symbols-outlined text-amber-600">bar_chart</span>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-slate-900">Raporlar</p>
+                            <p class="text-xs text-slate-500">Detaylı analizleri görün</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pro Tip -->
+            <div class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-6 text-white relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+                <div class="relative">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="material-symbols-outlined">auto_awesome</span>
+                        <span class="font-bold">Pro İpucu</span>
+                    </div>
+                    <p class="text-sm opacity-90 leading-relaxed">Faturalarınızı düzenli tutarak ödeme takibinizi kolaylaştırın ve nakit akışınızı optimize edin.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

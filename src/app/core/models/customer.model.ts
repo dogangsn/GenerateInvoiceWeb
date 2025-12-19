@@ -3,10 +3,23 @@ export interface Customer {
     name: string;
     email: string;
     phone: string;
-    address: string;
-    taxId: string;
     country: string;
+    address?: string;
+    taxId?: string;
+    taxOffice?: string;
+    notes?: string;
     userId: string;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface CustomerFormData {
+    name: string;
+    email: string;
+    phone: string;
+    country: string;
+    address?: string;
+    taxId?: string;
+    taxOffice?: string;
+    notes?: string;
 }

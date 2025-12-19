@@ -2,34 +2,41 @@ export interface InvoiceItem {
     description: string;
     quantity: number;
     unitPrice: number;
+    taxRate: number;
+    total?: number;
 }
 
 export interface Invoice {
     id?: string;
-    number: string;
-    date: string;
-    time: string;
+    invoiceNo: string;
+    date: Date | string;
+    dueDate: Date | string;
+    customerId?: string;
     customerName: string;
-    customerTaxId: string;
-    customerAddress: string;
+    customerEmail?: string;
+    customerTaxId?: string;
+    customerAddress?: string;
     items: InvoiceItem[];
-    status: 'Draft' | 'Sent' | 'Paid' | 'Printed';
-    
-    // Ülke ve vergi bilgileri
-    countryCode: string;
-    countryName: string;
-    currencyCode: string;
-    currencySymbol: string;
-    taxName: string;
-    taxRate: number;
-    
-    // Hesaplanan değerler
     subtotal: number;
-    taxAmount: number;
+    taxTotal: number;
     total: number;
-    
-    // Meta bilgiler
+    status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+    notes?: string;
     userId: string;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface InvoiceFormData {
+    invoiceNo: string;
+    date: string;
+    dueDate: string;
+    customerId?: string;
+    customerName: string;
+    customerEmail?: string;
+    customerTaxId?: string;
+    customerAddress?: string;
+    items: InvoiceItem[];
+    notes?: string;
+    status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 }

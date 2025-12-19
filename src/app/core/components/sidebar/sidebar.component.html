@@ -12,17 +12,30 @@
                 <a [routerLink]="item.route" routerLinkActive="bg-primary/10 text-primary"
                     class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900">
                     <span class="material-symbols-outlined text-[20px]">{{ item.icon }}</span>
-                    {{ item.label }}
+                    {{ lang.t(item.labelKey) }}
                 </a>
             </li>
         </ul>
     </nav>
 
-    <div class="border-t border-slate-200 p-4">
+    <div class="border-t border-slate-200 p-3">
+        <!-- Language Selector -->
+        <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1 mb-3">
+            <button (click)="lang.setLanguage('tr')" 
+                [class]="'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ' + (lang.lang === 'tr' ? 'bg-white text-primary shadow-sm' : 'text-slate-600')">
+                🇹🇷 Türkçe
+            </button>
+            <button (click)="lang.setLanguage('en')" 
+                [class]="'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ' + (lang.lang === 'en' ? 'bg-white text-primary shadow-sm' : 'text-slate-600')">
+                🇬🇧 English
+            </button>
+        </div>
+        
+        <!-- Logout -->
         <button (click)="logout()"
-            class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600">
+            class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50">
             <span class="material-symbols-outlined text-[20px]">logout</span>
-            Çıkış Yap
+            {{ lang.t('auth.logout') }}
         </button>
     </div>
 </aside>

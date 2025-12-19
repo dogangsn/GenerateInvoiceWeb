@@ -1,39 +1,58 @@
-<div class="min-h-screen bg-background-light flex flex-col">
+<div class="min-h-screen bg-slate-50 flex flex-col">
     <!-- Header -->
-    <header class="flex items-center justify-between px-8 py-6 bg-white border-b border-slate-200">
+    <header class="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 shadow-sm">
         <div class="flex items-center gap-2 text-primary">
             <span class="material-symbols-outlined text-3xl">receipt_long</span>
-            <span class="text-xl font-black tracking-tight">Fatura Uygulaması</span>
+            <span class="text-xl font-black tracking-tight">Fatura<span class="text-slate-900">Pro</span></span>
         </div>
-        <nav class="flex gap-6 text-sm font-medium text-slate-600">
-            <!-- <a href="#" class="hover:text-primary">Ana Sayfa</a>
-            <a href="#" class="hover:text-primary">Faturalar</a>
-            <a href="#" class="hover:text-primary">Yardım</a> -->
-        </nav>
-        <div class="flex items-center gap-4">
-            <!-- Kullanıcı Giriş Yapmamışsa -->
-            <ng-container *ngIf="!(user$ | async)">
-                <button (click)="goToLogin()"
-                    class="bg-primary text-white px-6 py-2.5 rounded-lg font-bold hover:bg-blue-700 transition-colors">
-                    Giriş Yap
+        
+        <div class="flex items-center gap-3">
+            <!-- Dil Seçici -->
+            <div class="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+                <button (click)="lang.setLanguage('tr')" 
+                    [class]="'px-3 py-1.5 rounded-md text-sm font-medium transition-all ' + (lang.lang === 'tr' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700')">
+                    🇹🇷 TR
                 </button>
+                <button (click)="lang.setLanguage('en')" 
+                    [class]="'px-3 py-1.5 rounded-md text-sm font-medium transition-all ' + (lang.lang === 'en' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700')">
+                    🇬🇧 EN
+                </button>
+            </div>
+            
+            <!-- Loading -->
+            <ng-container *ngIf="isLoading()">
+                <div class="w-24 h-9 bg-slate-200 rounded-lg animate-pulse"></div>
             </ng-container>
 
-            <!-- Kullanıcı Giriş Yapmışsa -->
-            <ng-container *ngIf="user$ | async as user">
-                <button (click)="goToDashboard()"
-                    class="flex items-center gap-2 text-slate-600 hover:text-primary font-medium transition-colors">
-                    <span class="material-symbols-outlined">dashboard</span>
-                    Panelim
+            <!-- Kullanıcı giriş yapmamışsa -->
+            <ng-container *ngIf="!isLoading() && !isLoggedIn()">
+                <button (click)="goToLogin()"
+                    class="bg-primary text-white px-5 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm">
+                    {{ lang.t('auth.login') }}
                 </button>
-                <div class="flex items-center gap-3 pl-4 border-l border-slate-200">
-                    <img [src]="user.photoURL || 'https://ui-avatars.com/api/?name=' + (user.displayName || user.email)"
-                        [alt]="user.displayName || 'Kullanıcı'"
-                        class="w-9 h-9 rounded-full object-cover border-2 border-slate-200" />
-                    <span class="text-sm font-medium text-slate-700 hidden md:block">{{ user.displayName || user.email }}</span>
-                    <button (click)="logout()" title="Çıkış Yap"
-                        class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                        <span class="material-symbols-outlined text-xl">logout</span>
+            </ng-container>
+            
+            <!-- Kullanıcı giriş yapmışsa -->
+            <ng-container *ngIf="!isLoading() && isLoggedIn()">
+                <div class="flex items-center gap-3">
+                    <!-- Kullanıcı Bilgisi -->
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        <span class="text-sm font-medium text-green-700">{{ user()?.displayName || user()?.email }}</span>
+                    </div>
+                    
+                    <!-- Panel Butonu -->
+                    <button (click)="goToDashboard()"
+                        class="bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">dashboard</span>
+                        {{ lang.t('sidebar.dashboard') }}
+                    </button>
+                    
+                    <!-- Çıkış Butonu -->
+                    <button (click)="logout()" 
+                        class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Çıkış Yap">
+                        <span class="material-symbols-outlined">logout</span>
                     </button>
                 </div>
             </ng-container>
@@ -42,47 +61,28 @@
 
     <!-- Content -->
     <main class="flex-1 flex flex-col items-center justify-center p-8">
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-black text-slate-900 mb-4">İşlem Yapılacak Ülkeyi Seçiniz</h1>
-            <p class="text-slate-500 text-lg">Oluşturulacak fatura, seçtiğiniz ülkenin vergi ve format kurallarına uygun
-                olacaktır.</p>
+        <div class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-3">{{ lang.t('countries.title') }}</h1>
+            <p class="text-slate-500 text-lg max-w-xl">{{ lang.t('countries.subtitle') }}</p>
         </div>
 
-        <div class="w-full max-w-6xl">
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+        <div class="w-full max-w-4xl">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 <button *ngFor="let country of countries" (click)="selectCountry(country)"
-                    class="group flex flex-col items-center p-6 bg-white rounded-2xl border border-slate-200 hover:border-primary hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                    <div
-                        class="w-16 h-16 mb-3 flex items-center justify-center text-5xl shadow-sm rounded-full bg-slate-50 group-hover:scale-110 transition-transform">
+                    class="group flex flex-col items-center p-5 bg-white rounded-xl border-2 border-slate-100 hover:border-primary hover:shadow-lg transition-all duration-200">
+                    <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">
                         {{ country.flag }}
                     </div>
-                    <span class="font-bold text-slate-700 group-hover:text-primary text-center">{{ country.name }}</span>
-                    
-                    <!-- Vergi ve Para Birimi Bilgisi -->
-                    <div class="mt-3 pt-3 border-t border-slate-100 w-full text-center space-y-1">
-                        <div class="flex items-center justify-center gap-1 text-xs text-slate-500">
-                            <span class="material-symbols-outlined text-sm">payments</span>
-                            <span class="font-medium">{{ country.currency.code }}</span>
-                            <span class="text-slate-400">({{ country.currency.symbol }})</span>
-                        </div>
-                        <div class="flex items-center justify-center gap-1 text-xs text-slate-500">
-                            <span class="material-symbols-outlined text-sm">percent</span>
-                            <span>{{ getDefaultTax(country).name }}</span>
-                            <span class="font-semibold text-primary">%{{ getDefaultTax(country).rate }}</span>
-                        </div>
-                    </div>
+                    <span class="font-semibold text-slate-700 group-hover:text-primary text-sm text-center">
+                        {{ lang.t(country.nameKey) }}
+                    </span>
                 </button>
             </div>
         </div>
     </main>
 
     <!-- Footer -->
-    <footer class="py-8 text-center text-sm text-slate-500 border-t border-slate-200 bg-white">
-        <div class="flex justify-center gap-6 mb-4">
-            <a href="#" class="hover:text-slate-900">Gizlilik Politikası</a>
-            <a href="#" class="hover:text-slate-900">Kullanım Koşulları</a>
-            <a href="#" class="hover:text-slate-900">Yardım</a>
-        </div>
-        <p>© Fatura Uygulaması 2024</p>
+    <footer class="py-6 text-center text-sm text-slate-400 border-t border-slate-200 bg-white">
+        <p>© 2024 FaturaPro</p>
     </footer>
 </div>
