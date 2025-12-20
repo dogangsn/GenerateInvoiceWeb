@@ -1,6 +1,6 @@
 import { Injectable, inject, PLATFORM_ID, Injector } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { Firestore, collection, collectionData, doc, addDoc, updateDoc, deleteDoc, query, where, serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, serverTimestamp } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { Customer, CustomerFormData } from '../models/customer.model';
 import { Observable, map, of, from, switchMap } from 'rxjs';
@@ -11,7 +11,7 @@ import { Observable, map, of, from, switchMap } from 'rxjs';
 export class CustomerService {
     private platformId = inject(PLATFORM_ID);
     private injector = inject(Injector);
-    
+
     // Lazy injection - sadece browser'da kullanılacak
     private _firestore: Firestore | null = null;
     private _auth: Auth | null = null;
@@ -36,7 +36,6 @@ export class CustomerService {
      * Kullanıcının müşterilerini gerçek zamanlı olarak getirir
      */
     getCustomers(): Observable<Customer[]> {
-        // SSR'da boş döndür
         if (!isPlatformBrowser(this.platformId) || !this.firestore || !this.auth) {
             return of([]);
         }
@@ -44,7 +43,6 @@ export class CustomerService {
         const auth = this.auth;
         const firestore = this.firestore;
 
-        // Auth state hazır olana kadar bekle
         return from(auth.authStateReady()).pipe(
             switchMap(() => {
                 const userId = auth.currentUser?.uid;
@@ -55,9 +53,10 @@ export class CustomerService {
                 const customersCol = collection(firestore, 'customers');
                 const q = query(customersCol, where('userId', '==', userId));
 
-                return collectionData(q, { idField: 'id' }).pipe(
-                    map(customers => {
-                        // Client-side sıralama (en yeni önce)
+                // Debug: Using getDocs to bypass collectionData instance check
+                return from(getDocs(q)).pipe(
+                    map(snapshot => {
+                        const customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         return (customers as Customer[]).sort((a, b) => {
                             const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
                             const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -67,6 +66,21 @@ export class CustomerService {
                 );
             })
         );
+    }
+
+    /**
+     * Tek bir müşteriyi getirir
+     */
+    async getCustomer(id: string): Promise<Customer | null> {
+        if (!isPlatformBrowser(this.platformId) || !this.firestore) return null;
+
+        const customerRef = doc(this.firestore, 'customers', id);
+        const customerSnap = await getDoc(customerRef);
+
+        if (customerSnap.exists()) {
+            return { id: customerSnap.id, ...customerSnap.data() } as Customer;
+        }
+        return null;
     }
 
     /**

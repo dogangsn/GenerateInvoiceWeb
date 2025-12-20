@@ -2,7 +2,8 @@ export interface InvoiceItem {
     description: string;
     quantity: number;
     unitPrice: number;
-    taxRate: number;
+    taxRate?: number; // Kept for backward compatibility if needed, but primary logic moves to global tax
+    discount?: number;
     total?: number;
 }
 
@@ -25,6 +26,11 @@ export interface Invoice {
     userId: string;
     createdAt?: Date;
     updatedAt?: Date;
+    // New fields
+    countryCode?: string;
+    taxLabel?: string;
+    taxRate?: number;
+    additionalTaxes?: { name: string; rate: number }[];
 }
 
 export interface InvoiceFormData {
@@ -39,4 +45,9 @@ export interface InvoiceFormData {
     items: InvoiceItem[];
     notes?: string;
     status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+    // New fields
+    countryCode?: string;
+    taxLabel?: string;
+    taxRate?: number;
+    additionalTaxes?: { name: string; rate: number }[];
 }

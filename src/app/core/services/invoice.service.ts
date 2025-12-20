@@ -11,7 +11,7 @@ import { Observable, map, of, from, switchMap } from 'rxjs';
 export class InvoiceService {
     private platformId = inject(PLATFORM_ID);
     private injector = inject(Injector);
-    
+
     // Lazy injection - sadece browser'da kullanılacak
     private _firestore: Firestore | null = null;
     private _auth: Auth | null = null;
@@ -74,7 +74,7 @@ export class InvoiceService {
 
         const invoiceRef = doc(this.firestore, 'invoices', id);
         const invoiceSnap = await getDoc(invoiceRef);
-        
+
         if (invoiceSnap.exists()) {
             return { id: invoiceSnap.id, ...invoiceSnap.data() } as Invoice;
         }
@@ -93,7 +93,7 @@ export class InvoiceService {
         const userId = this.auth.currentUser?.uid;
         if (!userId) throw new Error('Kullanıcı giriş yapmamış');
 
-        const { subtotal, taxTotal, total } = this.calculateTotals(data.items);
+        const { subtotal, taxTotal, total } = this.calculateTotals(data);
         const invoicesCol = collection(this.firestore, 'invoices');
 
         const invoiceData = {
@@ -122,8 +122,13 @@ export class InvoiceService {
         };
 
         // Eğer items güncelleniyorsa toplamları yeniden hesapla
+        // Partial data geldiği için tam hesaplama için mevcut veriye ihtiyaç olabilir ama 
+        // şimdilik data içinde gerekli alanların olduğunu varsayıyoruz veya
+        // kullanıcıdan tam form datası gelmesi beklenir.
         if (data.items) {
-            const { subtotal, taxTotal, total } = this.calculateTotals(data.items);
+            // Type assertion for Partial<InvoiceFormData> to InvoiceFormData for calculation
+            // safe assumption if the logic guarantees items+rates are passed together or defaults strictly handled
+            const { subtotal, taxTotal, total } = this.calculateTotals(data as InvoiceFormData);
             updateData.subtotal = subtotal;
             updateData.taxTotal = taxTotal;
             updateData.total = total;
@@ -176,23 +181,45 @@ export class InvoiceService {
     }
 
     /**
-     * Fatura kalemlerinden toplamları hesaplar
+     * Toplamları hesaplar
      */
-    private calculateTotals(items: InvoiceItem[]): { subtotal: number; taxTotal: number; total: number } {
+    private calculateTotals(data: InvoiceFormData): { subtotal: number; taxTotal: number; total: number } {
         let subtotal = 0;
-        let taxTotal = 0;
+        let totalDiscount = 0;
+        const items = data.items || [];
 
+        // 1. Calculate Gross Subtotal & Discount
         items.forEach(item => {
-            const itemSubtotal = item.quantity * item.unitPrice;
-            const itemTax = itemSubtotal * (item.taxRate / 100);
-            subtotal += itemSubtotal;
-            taxTotal += itemTax;
+            const quantity = item.quantity || 0;
+            const unitPrice = item.unitPrice || 0;
+            const gross = quantity * unitPrice;
+            const discount = gross * ((item.discount || 0) / 100);
+
+            subtotal += gross;
+            totalDiscount += discount;
         });
 
+        const netSubtotal = subtotal - totalDiscount;
+
+        // 2. Calculate Main Tax
+        const taxRate = data.taxRate || 0;
+        const mainTax = netSubtotal * (taxRate / 100);
+
+        // 3. Calculate Additional Taxes
+        let additionalTaxTotal = 0;
+        if (data.additionalTaxes) {
+            data.additionalTaxes.forEach(tax => {
+                additionalTaxTotal += netSubtotal * ((tax.rate || 0) / 100);
+            });
+        }
+
+        const taxTotal = mainTax + additionalTaxTotal;
+        const total = netSubtotal + taxTotal;
+
         return {
-            subtotal,
-            taxTotal,
-            total: subtotal + taxTotal
+            subtotal, // Gross subtotal stored
+            taxTotal, // Total tax (Main + Additional)
+            total
         };
     }
 }

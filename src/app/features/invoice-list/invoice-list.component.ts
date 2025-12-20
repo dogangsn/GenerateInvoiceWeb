@@ -36,6 +36,11 @@ export class InvoiceListComponent implements OnInit {
     // Form data
     formData: InvoiceFormData = this.getEmptyForm();
 
+    // Country & Tax State
+    countryName = 'Türkiye';
+    taxLabel = 'KDV';
+    taxRate = 20;
+
     // Delete confirmation
     showDeleteConfirm = false;
     deletingInvoiceId: string | null = null;
@@ -134,6 +139,7 @@ export class InvoiceListComponent implements OnInit {
         this.formData.invoiceNo = this.invoiceService.generateInvoiceNumber();
         this.isEditing = false;
         this.editingInvoiceId = null;
+        this.setCountryDetails('TR'); // Default
         this.showModal = true;
     }
 
@@ -147,10 +153,23 @@ export class InvoiceListComponent implements OnInit {
             customerEmail: invoice.customerEmail || '',
             customerTaxId: invoice.customerTaxId || '',
             customerAddress: invoice.customerAddress || '',
-            items: [...invoice.items],
+            items: invoice.items.map(item => ({ ...item, discount: item.discount || 0 })),
             notes: invoice.notes || '',
-            status: invoice.status
+            status: invoice.status,
+            countryCode: invoice.countryCode || 'TR',
+            additionalTaxes: invoice.additionalTaxes || []
         };
+
+        if (invoice.countryCode) {
+            this.setCountryDetails(invoice.countryCode);
+        } else {
+            this.setCountryDetails('TR');
+        }
+
+        // If saved invoice has specific tax rate/label, use them (in case defaults changed)
+        if (invoice.taxRate !== undefined) this.taxRate = invoice.taxRate;
+        if (invoice.taxLabel) this.taxLabel = invoice.taxLabel;
+
         this.isEditing = true;
         this.editingInvoiceId = invoice.id || null;
         this.showModal = true;
@@ -164,14 +183,23 @@ export class InvoiceListComponent implements OnInit {
     async saveInvoice(): Promise<void> {
         if (!this.formData.customerName || this.formData.items.length === 0) return;
 
+        // Populate calculated fields for the model
+        const invoiceData: InvoiceFormData = {
+            ...this.formData,
+            countryCode: this.formData.countryCode,
+            taxLabel: this.taxLabel,
+            taxRate: this.taxRate
+        };
+
         this.isSaving = true;
         try {
             if (this.isEditing && this.editingInvoiceId) {
-                await this.invoiceService.updateInvoice(this.editingInvoiceId, this.formData);
+                await this.invoiceService.updateInvoice(this.editingInvoiceId, invoiceData);
             } else {
-                await this.invoiceService.createInvoice(this.formData);
+                await this.invoiceService.createInvoice(invoiceData);
             }
             this.closeModal();
+            this.loadInvoices(); // Reload list
         } catch (error) {
             console.error('Fatura kaydedilirken hata:', error);
         } finally {
@@ -191,13 +219,61 @@ export class InvoiceListComponent implements OnInit {
         }
     }
 
+    // Country selection
+    setCountryDetails(code: string) {
+        const countryMap: { [key: string]: { name: string, taxLabel: string, taxRate: number } } = {
+            'TR': { name: 'Türkiye', taxLabel: 'KDV', taxRate: 20 },
+            'DE': { name: 'Almanya', taxLabel: 'MwSt', taxRate: 19 },
+            'FR': { name: 'Fransa', taxLabel: 'TVA', taxRate: 20 },
+            'UK': { name: 'Birleşik Krallık', taxLabel: 'VAT', taxRate: 20 },
+            'ES': { name: 'İspanya', taxLabel: 'IVA', taxRate: 21 },
+            'IT': { name: 'İtalya', taxLabel: 'IVA', taxRate: 22 },
+            'NL': { name: 'Hollanda', taxLabel: 'BTW', taxRate: 21 },
+            'CA': { name: 'Kanada', taxLabel: 'GST/HST', taxRate: 5 },
+            'US': { name: 'ABD', taxLabel: 'Sales Tax', taxRate: 0 },
+            'AU': { name: 'Avustralya', taxLabel: 'GST', taxRate: 10 }
+        };
+
+        const details = countryMap[code];
+        if (details) {
+            this.countryName = details.name;
+            this.taxLabel = details.taxLabel;
+            this.taxRate = details.taxRate;
+        } else {
+            this.countryName = code;
+            this.taxLabel = 'Tax';
+            this.taxRate = 0;
+        }
+        this.formData.countryCode = code;
+        this.formData.taxRate = this.taxRate;
+        this.formData.taxLabel = this.taxLabel;
+    }
+
+    onCountryChange(code: string) {
+        this.setCountryDetails(code);
+    }
+
+    // Additional Taxes
+    addAdditionalTax() {
+        if (!this.formData.additionalTaxes) {
+            this.formData.additionalTaxes = [];
+        }
+        this.formData.additionalTaxes.push({ name: 'Ek Vergi', rate: 0 });
+    }
+
+    removeAdditionalTax(index: number) {
+        if (this.formData.additionalTaxes) {
+            this.formData.additionalTaxes.splice(index, 1);
+        }
+    }
+
     // Item methods
     addItem(): void {
         this.formData.items.push({
             description: '',
             quantity: 1,
             unitPrice: 0,
-            taxRate: 18
+            discount: 0
         });
     }
 
@@ -206,24 +282,40 @@ export class InvoiceListComponent implements OnInit {
     }
 
     calculateItemTotal(item: InvoiceItem): number {
-        const subtotal = item.quantity * item.unitPrice;
-        const tax = subtotal * (item.taxRate / 100);
-        return subtotal + tax;
+        const gross = item.quantity * item.unitPrice;
+        const discountAmount = gross * ((item.discount || 0) / 100);
+        return gross - discountAmount;
     }
 
+    // Calculations
     get formSubtotal(): number {
         return this.formData.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
     }
 
-    get formTaxTotal(): number {
+    get formTotalDiscount(): number {
         return this.formData.items.reduce((sum, item) => {
-            const subtotal = item.quantity * item.unitPrice;
-            return sum + (subtotal * (item.taxRate / 100));
+            const gross = item.quantity * item.unitPrice;
+            return sum + (gross * ((item.discount || 0) / 100));
+        }, 0);
+    }
+
+    get formNetSubtotal(): number {
+        return this.formSubtotal - this.formTotalDiscount;
+    }
+
+    get formTaxTotal(): number {
+        return this.formNetSubtotal * (this.taxRate / 100);
+    }
+
+    get formAdditionalTaxTotal(): number {
+        if (!this.formData.additionalTaxes) return 0;
+        return this.formData.additionalTaxes.reduce((sum, tax) => {
+            return sum + (this.formNetSubtotal * (tax.rate / 100));
         }, 0);
     }
 
     get formTotal(): number {
-        return this.formSubtotal + this.formTaxTotal;
+        return this.formNetSubtotal + this.formTaxTotal + this.formAdditionalTaxTotal;
     }
 
     // Delete methods
@@ -243,6 +335,7 @@ export class InvoiceListComponent implements OnInit {
         try {
             await this.invoiceService.deleteInvoice(this.deletingInvoiceId);
             this.selectedIds.delete(this.deletingInvoiceId);
+            this.loadInvoices(); // Reload list
         } catch (error) {
             console.error('Fatura silinirken hata:', error);
         } finally {
@@ -256,6 +349,7 @@ export class InvoiceListComponent implements OnInit {
         try {
             await this.invoiceService.deleteInvoices(Array.from(this.selectedIds));
             this.selectedIds.clear();
+            this.loadInvoices(); // Reload list
         } catch (error) {
             console.error('Faturalar silinirken hata:', error);
         }
@@ -266,6 +360,7 @@ export class InvoiceListComponent implements OnInit {
         if (!invoice.id) return;
         try {
             await this.invoiceService.updateInvoiceStatus(invoice.id, status);
+            this.loadInvoices(); // Reload to reflect changes if needed
         } catch (error) {
             console.error('Durum güncellenirken hata:', error);
         }
@@ -305,10 +400,12 @@ export class InvoiceListComponent implements OnInit {
                 description: '',
                 quantity: 1,
                 unitPrice: 0,
-                taxRate: 18
+                discount: 0
             }],
             notes: '',
-            status: 'draft'
+            status: 'draft',
+            countryCode: 'TR',
+            additionalTaxes: []
         };
     }
 }
