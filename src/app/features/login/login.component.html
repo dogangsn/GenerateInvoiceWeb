@@ -30,9 +30,13 @@
             {{ isLoading ? lang.t('auth.loggingIn') : lang.t('auth.loginWithGoogle') }}
         </button>
 
-        <!-- Error -->
+        <!-- Messages -->
         <div *ngIf="errorMessage" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
             {{ errorMessage }}
+        </div>
+        <div *ngIf="successMessage" class="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm flex items-center gap-2">
+            <span class="material-symbols-outlined text-lg">check_circle</span>
+            {{ successMessage }}
         </div>
 
         <!-- Divider -->
@@ -70,7 +74,9 @@
                     <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary">
                     <span class="text-slate-600">{{ lang.t('auth.rememberMe') }}</span>
                 </label>
-                <a href="#" class="text-primary font-medium hover:underline">{{ lang.t('auth.forgotPassword') }}</a>
+                <button type="button" (click)="forgotPassword()" class="text-primary font-medium hover:underline text-xs bg-transparent border-0 cursor-pointer">
+                    {{ lang.t('auth.forgotPassword') }}
+                </button>
             </div>
 
             <button type="submit" [disabled]="isLoading"

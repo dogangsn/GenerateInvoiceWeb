@@ -2,6 +2,7 @@ import { Component, OnInit, inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomerService } from '../../core/services/customer.service';
+import { LanguageService } from '../../core/services/language.service';
 import { Customer, CustomerFormData } from '../../core/models/customer.model';
 
 @Component({
@@ -14,19 +15,24 @@ import { Customer, CustomerFormData } from '../../core/models/customer.model';
 export class CustomerListComponent implements OnInit {
     private customerService = inject(CustomerService);
     private platformId = inject(PLATFORM_ID);
+    lang = inject(LanguageService);
 
     customers: Customer[] = [];
     filteredCustomers: Customer[] = [];
     selectedIds: Set<string> = new Set();
     searchTerm = '';
     isLoading = false;
-    
+
+    // Pagination
+    currentPage = 1;
+    pageSize = 8;
+
     // Modal state
     showModal = false;
     isEditing = false;
     editingCustomerId: string | null = null;
     isSaving = false;
-    
+
     // Form data
     formData: CustomerFormData = this.getEmptyForm();
 
@@ -40,7 +46,6 @@ export class CustomerListComponent implements OnInit {
     ];
 
     ngOnInit(): void {
-        // SSR'da veri yükleme yapma
         if (isPlatformBrowser(this.platformId)) {
             this.loadCustomers();
         }
@@ -72,6 +77,44 @@ export class CustomerListComponent implements OnInit {
                 c.phone.includes(term)
             );
         }
+        this.currentPage = 1;
+    }
+
+    // Pagination getters
+    get totalPages(): number {
+        return Math.ceil(this.filteredCustomers.length / this.pageSize) || 1;
+    }
+
+    get paginatedCustomers(): Customer[] {
+        const start = (this.currentPage - 1) * this.pageSize;
+        return this.filteredCustomers.slice(start, start + this.pageSize);
+    }
+
+    setPage(page: number): void {
+        if (page >= 1 && page <= this.totalPages) {
+            this.currentPage = page;
+        }
+    }
+
+    exportToCsv(): void {
+        if (this.filteredCustomers.length === 0) return;
+        const headers = ['Müşteri Adı / Ünvanı', 'E-posta', 'Telefon', 'Ülke', 'Vergi Dairesi', 'Vergi No'];
+        const rows = this.filteredCustomers.map(c => [
+            `"${c.name}"`,
+            `"${c.email}"`,
+            `"${c.phone}"`,
+            `"${c.country}"`,
+            `"${c.taxOffice || ''}"`,
+            `"${c.taxId || ''}"`
+        ]);
+
+        const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `musteriler_${new Date().toISOString().split('T')[0]}.csv`);
+        link.click();
     }
 
     // Selection methods
@@ -84,10 +127,10 @@ export class CustomerListComponent implements OnInit {
     }
 
     toggleSelectAll(): void {
-        if (this.selectedIds.size === this.filteredCustomers.length) {
+        if (this.selectedIds.size === this.paginatedCustomers.length) {
             this.selectedIds.clear();
         } else {
-            this.filteredCustomers.forEach(c => {
+            this.paginatedCustomers.forEach(c => {
                 if (c.id) this.selectedIds.add(c.id);
             });
         }
@@ -98,8 +141,8 @@ export class CustomerListComponent implements OnInit {
     }
 
     get isAllSelected(): boolean {
-        return this.filteredCustomers.length > 0 && 
-               this.selectedIds.size === this.filteredCustomers.length;
+        return this.paginatedCustomers.length > 0 &&
+            this.selectedIds.size === this.paginatedCustomers.length;
     }
 
     // Modal methods
@@ -142,6 +185,7 @@ export class CustomerListComponent implements OnInit {
                 await this.customerService.addCustomer(this.formData);
             }
             this.closeModal();
+            this.loadCustomers();
         } catch (error) {
             console.error('Müşteri kaydedilirken hata:', error);
         } finally {
@@ -166,6 +210,7 @@ export class CustomerListComponent implements OnInit {
         try {
             await this.customerService.deleteCustomer(this.deletingCustomerId);
             this.selectedIds.delete(this.deletingCustomerId);
+            this.loadCustomers();
         } catch (error) {
             console.error('Müşteri silinirken hata:', error);
         } finally {
@@ -179,6 +224,7 @@ export class CustomerListComponent implements OnInit {
         try {
             await this.customerService.deleteCustomers(Array.from(this.selectedIds));
             this.selectedIds.clear();
+            this.loadCustomers();
         } catch (error) {
             console.error('Müşteriler silinirken hata:', error);
         }

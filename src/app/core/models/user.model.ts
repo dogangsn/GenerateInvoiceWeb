@@ -9,6 +9,10 @@ export interface UserProfile {
     taxId: string | null;
     taxOffice: string | null;
     country: string | null;
+    iban: string | null;
+    bankName: string | null;
+    logoUrl: string | null;
+    phone: string | null;
     createdAt: Date;
     updatedAt: Date;
 }

@@ -1,6 +1,6 @@
 import { Injectable, inject, PLATFORM_ID, Injector } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { Firestore, collection, collectionData, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, addDoc, updateDoc, deleteDoc, getDoc, getDocs, query, where, serverTimestamp, onSnapshot } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { Customer, CustomerFormData } from '../models/customer.model';
 import { Observable, map, of, from, switchMap } from 'rxjs';
@@ -50,22 +50,35 @@ export class CustomerService {
                     return of([]);
                 }
 
-                const customersCol = collection(firestore, 'customers');
-                const q = query(customersCol, where('userId', '==', userId));
+                return new Observable<Customer[]>(subscriber => {
+                    const customersCol = collection(firestore, 'customers');
+                    const q = query(customersCol, where('userId', '==', userId));
 
-                // Debug: Using getDocs to bypass collectionData instance check
-                return from(getDocs(q)).pipe(
-                    map(snapshot => {
-                        const customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        return (customers as Customer[]).sort((a, b) => {
-                            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                            return dateB - dateA;
+                    const unsubscribe = onSnapshot(q, (snapshot) => {
+                        const customers: Customer[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Customer);
+                        customers.sort((a, b) => {
+                            const timeA = this.parseDateToTime(a.createdAt);
+                            const timeB = this.parseDateToTime(b.createdAt);
+                            return timeB - timeA;
                         });
-                    })
-                );
+                        subscriber.next(customers);
+                    }, (error) => {
+                        console.error('Müşteriler dinlenirken hata:', error);
+                        subscriber.error(error);
+                    });
+
+                    return () => unsubscribe();
+                });
             })
         );
+    }
+
+    private parseDateToTime(val: any): number {
+        if (!val) return 0;
+        if (typeof val.toDate === 'function') return val.toDate().getTime();
+        if (typeof val.seconds === 'number') return val.seconds * 1000;
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? 0 : d.getTime();
     }
 
     /**
@@ -97,12 +110,12 @@ export class CustomerService {
 
         const customersCol = collection(this.firestore, 'customers');
 
-        const customerData = {
+        const customerData = this.removeUndefinedFields({
             ...data,
             userId,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
-        };
+        });
 
         const docRef = await addDoc(customersCol, customerData);
         return docRef.id;
@@ -114,11 +127,27 @@ export class CustomerService {
     async updateCustomer(id: string, data: Partial<CustomerFormData>): Promise<void> {
         if (!isPlatformBrowser(this.platformId) || !this.firestore) return;
 
-        const customerRef = doc(this.firestore, 'customers', id);
-        await updateDoc(customerRef, {
+        const cleaned = this.removeUndefinedFields({
             ...data,
             updatedAt: serverTimestamp()
         });
+
+        const customerRef = doc(this.firestore, 'customers', id);
+        await updateDoc(customerRef, cleaned);
+    }
+
+    private removeUndefinedFields(obj: any): any {
+        if (obj === null || obj === undefined) return null;
+        if (typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) return obj.map(item => this.removeUndefinedFields(item));
+
+        const result: any = {};
+        for (const key of Object.keys(obj)) {
+            if (obj[key] !== undefined) {
+                result[key] = this.removeUndefinedFields(obj[key]);
+            }
+        }
+        return result;
     }
 
     /**

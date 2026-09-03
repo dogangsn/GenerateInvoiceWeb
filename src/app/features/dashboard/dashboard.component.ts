@@ -2,8 +2,10 @@ import { Component, inject, OnInit, AfterViewInit, ElementRef, ViewChild, PLATFO
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { InvoiceService } from '../../core/services/invoice.service';
+import { LanguageService } from '../../core/services/language.service';
+import { Invoice } from '../../core/models/invoice.model';
 import { Chart, registerables } from 'chart.js';
-import { User } from '@angular/fire/auth';
 
 interface DashboardStats {
     totalInvoices: number;
@@ -18,8 +20,8 @@ interface RecentInvoice {
     invoiceNo: string;
     customerName: string;
     amount: number;
-    status: 'paid' | 'pending' | 'overdue';
-    date: Date;
+    status: string;
+    date: Date | string;
 }
 
 @Component({
@@ -31,7 +33,9 @@ interface RecentInvoice {
 })
 export class DashboardComponent implements OnInit, AfterViewInit {
     private authService = inject(AuthService);
+    private invoiceService = inject(InvoiceService);
     private platformId = inject(PLATFORM_ID);
+    lang = inject(LanguageService);
 
     @ViewChild('revenueChart') revenueChartRef!: ElementRef<HTMLCanvasElement>;
     @ViewChild('statusChart') statusChartRef!: ElementRef<HTMLCanvasElement>;
@@ -39,7 +43,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     userName = '';
     userEmail = '';
     currentDate = new Date();
-    
+
     stats: DashboardStats = {
         totalInvoices: 0,
         pendingInvoices: 0,
@@ -49,6 +53,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
     };
 
     recentInvoices: RecentInvoice[] = [];
+    allInvoices: Invoice[] = [];
+    monthlyRevenueData: number[] = new Array(12).fill(0);
+    statusCounts = { paid: 0, pending: 0, overdue: 0, draft: 0, cancelled: 0 };
 
     private revenueChart: Chart | null = null;
     private statusChart: Chart | null = null;
@@ -66,7 +73,10 @@ export class DashboardComponent implements OnInit, AfterViewInit {
                 this.userEmail = user.email || '';
             }
         });
-        this.loadDemoData();
+
+        if (isPlatformBrowser(this.platformId)) {
+            this.loadLiveData();
+        }
     }
 
     logout() {
@@ -78,7 +88,109 @@ export class DashboardComponent implements OnInit, AfterViewInit {
             setTimeout(() => {
                 this.initRevenueChart();
                 this.initStatusChart();
-            }, 100);
+            }, 200);
+        }
+    }
+
+    private loadLiveData() {
+        this.invoiceService.getInvoices().subscribe({
+            next: (invoices) => {
+                this.allInvoices = invoices;
+                this.processInvoiceData(invoices);
+                this.updateCharts();
+            },
+            error: (err) => {
+                console.error('Dashboard verisi yüklenirken hata:', err);
+            }
+        });
+    }
+
+    private processInvoiceData(invoices: Invoice[]) {
+        let totalRevenue = 0;
+        let pending = 0;
+        let paid = 0;
+        let overdue = 0;
+        let draft = 0;
+        let cancelled = 0;
+
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth();
+        
+        const monthlyRev = new Array(12).fill(0);
+        let currentMonthRevenue = 0;
+        let lastMonthRevenue = 0;
+
+        invoices.forEach(inv => {
+            const status = inv.status || 'draft';
+            if (status === 'paid') paid++;
+            else if (status === 'pending' || status === 'sent') pending++;
+            else if (status === 'overdue') overdue++;
+            else if (status === 'draft') draft++;
+            else if (status === 'cancelled') cancelled++;
+
+            const amount = inv.total || 0;
+            if (status === 'paid') {
+                totalRevenue += amount;
+            }
+
+            // Date processing for monthly chart
+            const invDate = inv.date ? new Date(inv.date) : new Date();
+            if (invDate.getFullYear() === currentYear) {
+                const month = invDate.getMonth();
+                if (status === 'paid') {
+                    monthlyRev[month] += amount;
+                }
+                if (month === currentMonth && status === 'paid') {
+                    currentMonthRevenue += amount;
+                }
+                if (month === currentMonth - 1 && status === 'paid') {
+                    lastMonthRevenue += amount;
+                }
+            }
+        });
+
+        // Growth rate
+        let growth = 0;
+        if (lastMonthRevenue > 0) {
+            growth = ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100;
+        } else if (currentMonthRevenue > 0) {
+            growth = 100;
+        }
+
+        this.stats = {
+            totalInvoices: invoices.length,
+            pendingInvoices: pending,
+            paidInvoices: paid,
+            totalRevenue,
+            monthlyGrowth: Math.round(growth * 10) / 10
+        };
+
+        this.statusCounts = { paid, pending, overdue, draft, cancelled };
+        this.monthlyRevenueData = monthlyRev;
+
+        // Recent 5 invoices
+        this.recentInvoices = invoices.slice(0, 5).map(inv => ({
+            id: inv.id || '',
+            invoiceNo: inv.invoiceNo,
+            customerName: inv.customerName,
+            amount: inv.total || 0,
+            status: inv.status || 'draft',
+            date: inv.date
+        }));
+    }
+
+    private updateCharts() {
+        if (this.revenueChart) {
+            this.revenueChart.data.datasets[0].data = [...this.monthlyRevenueData];
+            this.revenueChart.update();
+        }
+        if (this.statusChart) {
+            this.statusChart.data.datasets[0].data = [
+                this.statusCounts.paid,
+                this.statusCounts.pending,
+                this.statusCounts.overdue
+            ];
+            this.statusChart.update();
         }
     }
 
@@ -98,7 +210,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
                 labels: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'],
                 datasets: [{
                     label: 'Gelir (₺)',
-                    data: [18500, 22000, 19800, 28500, 32000, 27500, 35000, 38200, 42000, 39500, 45000, 47850],
+                    data: [...this.monthlyRevenueData],
                     borderColor: '#3b82f6',
                     backgroundColor: gradient,
                     borderWidth: 3,
@@ -160,7 +272,11 @@ export class DashboardComponent implements OnInit, AfterViewInit {
             data: {
                 labels: ['Ödendi', 'Bekliyor', 'Gecikmiş'],
                 datasets: [{
-                    data: [18, 5, 1],
+                    data: [
+                        this.statusCounts.paid,
+                        this.statusCounts.pending,
+                        this.statusCounts.overdue
+                    ],
                     backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
                     borderWidth: 0,
                     hoverOffset: 8
@@ -190,28 +306,13 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         });
     }
 
-    private loadDemoData() {
-        this.stats = {
-            totalInvoices: 24,
-            pendingInvoices: 5,
-            paidInvoices: 18,
-            totalRevenue: 47850,
-            monthlyGrowth: 12.5
-        };
-
-        this.recentInvoices = [
-            { id: '1', invoiceNo: 'INV-2024-001', customerName: 'ABC Teknoloji Ltd.', amount: 12500, status: 'paid', date: new Date() },
-            { id: '2', invoiceNo: 'INV-2024-002', customerName: 'XYZ Danışmanlık', amount: 8750, status: 'pending', date: new Date() },
-            { id: '3', invoiceNo: 'INV-2024-003', customerName: 'Demo Şirketi A.Ş.', amount: 15200, status: 'paid', date: new Date() },
-            { id: '4', invoiceNo: 'INV-2024-004', customerName: 'Test Firması', amount: 3400, status: 'overdue', date: new Date() },
-        ];
-    }
-
     getStatusClass(status: string): string {
         const classes: Record<string, string> = {
             'paid': 'bg-green-100 text-green-700',
             'pending': 'bg-orange-100 text-orange-700',
-            'overdue': 'bg-red-100 text-red-700'
+            'overdue': 'bg-red-100 text-red-700',
+            'draft': 'bg-slate-100 text-slate-700',
+            'cancelled': 'bg-gray-100 text-gray-500'
         };
         return classes[status] || 'bg-slate-100 text-slate-700';
     }
@@ -220,7 +321,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         const texts: Record<string, string> = {
             'paid': 'Ödendi',
             'pending': 'Bekliyor',
-            'overdue': 'Gecikmiş'
+            'overdue': 'Gecikmiş',
+            'draft': 'Taslak',
+            'cancelled': 'İptal'
         };
         return texts[status] || status;
     }

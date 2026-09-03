@@ -23,6 +23,7 @@ export class LoginComponent implements OnInit {
     returnUrl = '/dashboard';
     isLoading = false;
     errorMessage = '';
+    successMessage = '';
 
     ngOnInit() {
         this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
@@ -36,6 +37,7 @@ export class LoginComponent implements OnInit {
 
         this.isLoading = true;
         this.errorMessage = '';
+        this.successMessage = '';
         try {
             await this.authService.loginWithEmail(this.email, this.password);
             this.router.navigate([this.returnUrl]);
@@ -50,6 +52,7 @@ export class LoginComponent implements OnInit {
     async loginWithGoogle() {
         this.isLoading = true;
         this.errorMessage = '';
+        this.successMessage = '';
         try {
             const user = await this.authService.loginWithGoogle();
             if (user) {
@@ -58,6 +61,26 @@ export class LoginComponent implements OnInit {
             }
         } catch (error: any) {
             console.error('Login failed', error);
+            this.errorMessage = this.getErrorMessage(error.code);
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    async forgotPassword() {
+        if (!this.email) {
+            this.errorMessage = 'Şifre sıfırlama bağlantısı göndermek için e-posta adresinizi giriniz.';
+            return;
+        }
+
+        this.isLoading = true;
+        this.errorMessage = '';
+        this.successMessage = '';
+        try {
+            await this.authService.resetPassword(this.email);
+            this.successMessage = 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.';
+        } catch (error: any) {
+            console.error('Reset password error:', error);
             this.errorMessage = this.getErrorMessage(error.code);
         } finally {
             this.isLoading = false;
@@ -76,6 +99,6 @@ export class LoginComponent implements OnInit {
             'auth/popup-blocked': 'Popup penceresi engellendi. Lütfen popup engelleyiciyi devre dışı bırakın.',
             'auth/invalid-credential': 'Geçersiz kimlik bilgileri. Lütfen tekrar deneyin.',
         };
-        return errorMessages[errorCode] || 'Giriş yapılırken bir hata oluştu. Lütfen tekrar deneyin.';
+        return errorMessages[errorCode] || 'İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.';
     }
 }

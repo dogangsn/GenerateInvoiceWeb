@@ -1,6 +1,6 @@
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { Auth, GoogleAuthProvider, signInWithPopup, signOut, user, User, signInWithEmailAndPassword, createUserWithEmailAndPassword } from '@angular/fire/auth';
+import { Auth, GoogleAuthProvider, signInWithPopup, signOut, user, User, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { UserService } from './user.service';
@@ -113,6 +113,10 @@ export class AuthService {
         const profile = await this.userService.createOrUpdateUserProfile(result.user);
         this.cacheProfile(profile);
         return result.user;
+    }
+
+    async resetPassword(email: string): Promise<void> {
+        await sendPasswordResetEmail(this.auth, email);
     }
 
     async logout() {

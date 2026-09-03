@@ -57,14 +57,36 @@ const translations: Record<Language, Record<string, string>> = {
         'common.search': 'Ara',
         'common.email': 'E-posta',
         'common.loading': 'Yükleniyor...',
+        'common.exportCsv': 'CSV İndir',
+        'common.actions': 'İşlemler',
 
         // Invoices
         'invoices.title': 'Faturalar',
         'invoices.new': 'Yeni Fatura',
+        'invoices.preview': 'Önizle',
+        'invoices.downloadPdf': 'PDF İndir',
+        'invoices.print': 'Yazdır',
 
         // Customers
         'customers.title': 'Müşteriler',
         'customers.new': 'Yeni Müşteri',
+
+        // Reports
+        'reports.title': 'Raporlar & Analizler',
+        'reports.subtitle': 'Finansal performans ve fatura raporlarınız',
+
+        // Settings
+        'settings.title': 'Firma & Hesap Ayarları',
+        'settings.subtitle': 'Fatura şablonlarınızda görünecek firma ve banka bilgilerinizi yönetin.',
+        'settings.companyName': 'Firma / Şirket Adı',
+        'settings.companyAddress': 'Firma Adresi',
+        'settings.taxOffice': 'Vergi Dairesi',
+        'settings.taxId': 'Vergi Numarası / TCKN',
+        'settings.phone': 'Telefon Numarası',
+        'settings.bankName': 'Banka Adı',
+        'settings.iban': 'IBAN Numarası',
+        'settings.logoUrl': 'Logo URL Adresi',
+        'settings.saveSuccess': 'Ayarlar başarıyla kaydedildi!',
     },
     en: {
         // Auth
@@ -119,14 +141,36 @@ const translations: Record<Language, Record<string, string>> = {
         'common.search': 'Search',
         'common.email': 'Email',
         'common.loading': 'Loading...',
+        'common.exportCsv': 'Export CSV',
+        'common.actions': 'Actions',
 
         // Invoices
         'invoices.title': 'Invoices',
         'invoices.new': 'New Invoice',
+        'invoices.preview': 'Preview',
+        'invoices.downloadPdf': 'Download PDF',
+        'invoices.print': 'Print',
 
         // Customers
         'customers.title': 'Customers',
         'customers.new': 'New Customer',
+
+        // Reports
+        'reports.title': 'Reports & Analytics',
+        'reports.subtitle': 'Your financial performance and invoice summaries',
+
+        // Settings
+        'settings.title': 'Company & Account Settings',
+        'settings.subtitle': 'Manage company and bank details appearing on your invoice templates.',
+        'settings.companyName': 'Company Name',
+        'settings.companyAddress': 'Company Address',
+        'settings.taxOffice': 'Tax Office',
+        'settings.taxId': 'Tax ID / VAT No',
+        'settings.phone': 'Phone Number',
+        'settings.bankName': 'Bank Name',
+        'settings.iban': 'IBAN Number',
+        'settings.logoUrl': 'Logo URL',
+        'settings.saveSuccess': 'Settings updated successfully!',
     }
 };
 

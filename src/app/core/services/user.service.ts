@@ -50,6 +50,10 @@ export class UserService {
                 taxId: null,
                 taxOffice: null,
                 country: null,
+                iban: null,
+                bankName: null,
+                logoUrl: null,
+                phone: null,
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
             };

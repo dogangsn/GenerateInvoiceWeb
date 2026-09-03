@@ -1,122 +1,141 @@
-<div class="p-8">
+<div class="p-8 bg-slate-50 min-h-screen">
+    <!-- Header -->
     <div class="flex items-center justify-between mb-8">
         <div>
-            <h1 class="text-3xl font-bold text-slate-900">Fatura Raporları</h1>
-            <p class="text-slate-500">Faturalarınıza göre özel raporlar oluşturun ve görüntüleyin.</p>
+            <h1 class="text-3xl font-bold text-slate-900">{{ lang.t('reports.title') }}</h1>
+            <p class="text-slate-500">{{ lang.t('reports.subtitle') }}</p>
         </div>
         <div class="flex gap-3">
-            <app-button variant="outline" icon="print">Yazdır</app-button>
-            <app-button variant="primary" icon="download">Dışa Aktar</app-button>
+            <button (click)="printReport()"
+                class="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px]">print</span>
+                Yazdır
+            </button>
+            <button (click)="exportReportToCsv()"
+                class="px-5 py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-primary/25 flex items-center gap-2">
+                <span class="material-symbols-outlined text-[20px]">download</span>
+                {{ lang.t('common.exportCsv') }}
+            </button>
         </div>
     </div>
 
-    <!-- Filters -->
-    <app-card className="mb-8">
+    <!-- Filters Card -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-8">
         <h2 class="text-lg font-bold text-slate-900 mb-4">Rapor Kriterleri</h2>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Başlangıç Tarihi</label>
-                <input type="date"
-                    class="w-full rounded-lg border-slate-300 py-2.5 text-sm focus:border-primary focus:ring-primary"
-                    value="2023-12-05">
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Başlangıç Tarihi</label>
+                <input type="date" [(ngModel)]="startDate" (ngModelChange)="applyFilter()"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20" />
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Bitiş Tarihi</label>
-                <input type="date"
-                    class="w-full rounded-lg border-slate-300 py-2.5 text-sm focus:border-primary focus:ring-primary"
-                    value="2023-12-30">
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Bitiş Tarihi</label>
+                <input type="date" [(ngModel)]="endDate" (ngModelChange)="applyFilter()"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20" />
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Rapor Türü</label>
-                <select
-                    class="w-full rounded-lg border-slate-300 py-2.5 text-sm focus:border-primary focus:ring-primary">
-                    <option>Aylık Satış Raporu</option>
-                    <option>Yıllık Gelir</option>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Durum Filtresi</label>
+                <select [(ngModel)]="reportType" (ngModelChange)="applyFilter()"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white">
+                    <option value="all">Tüm Faturalar</option>
+                    <option value="paid">Sadece Ödenenler</option>
+                    <option value="pending">Sadece Bekleyenler</option>
+                    <option value="overdue">Gecikmiş Faturalar</option>
                 </select>
             </div>
-            <app-button variant="primary" icon="filter_alt" [fullWidth]="true">Rapor Oluştur</app-button>
+            <button (click)="applyFilter()"
+                class="px-5 py-2.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-[20px]">filter_alt</span>
+                Raporu Güncelle
+            </button>
         </div>
-    </app-card>
+    </div>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
                 <span class="material-symbols-outlined">payments</span>
             </div>
             <div>
-                <p class="text-sm text-slate-500 font-medium">Toplam Ciro</p>
-                <p class="text-2xl font-bold text-slate-900">₺1,250,450.75</p>
+                <p class="text-sm text-slate-500 font-medium">Toplam Tahsil Edilen Gelir</p>
+                <p class="text-2xl font-black text-slate-900">₺{{ totalRevenue | number:'1.2-2' }}</p>
             </div>
         </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center text-green-600">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-green-600">
                 <span class="material-symbols-outlined">receipt</span>
             </div>
             <div>
-                <p class="text-sm text-slate-500 font-medium">Toplam Fatura</p>
-                <p class="text-2xl font-bold text-slate-900">342</p>
+                <p class="text-sm text-slate-500 font-medium">Toplam Fatura Sayısı</p>
+                <p class="text-2xl font-black text-slate-900">{{ totalInvoicesCount }}</p>
             </div>
         </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center text-red-600">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
                 <span class="material-symbols-outlined">percent</span>
             </div>
             <div>
-                <p class="text-sm text-slate-500 font-medium">Toplam Vergi</p>
-                <p class="text-2xl font-bold text-slate-900">₺225,081.14</p>
+                <p class="text-sm text-slate-500 font-medium">Hesaplanan Toplam Vergi</p>
+                <p class="text-2xl font-black text-slate-900">₺{{ totalTax | number:'1.2-2' }}</p>
             </div>
         </div>
     </div>
 
     <!-- Chart Section -->
-    <app-card title="Aylık Satış Dağılımı" className="mb-8">
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-8">
+        <h2 class="text-lg font-bold text-slate-900 mb-6">Aylık Ödenen Satış Grafiği (₺)</h2>
         <div class="h-64 flex items-end justify-between gap-2 px-4 pt-8 pb-2">
             <div *ngFor="let item of monthlySales" class="flex flex-col items-center gap-2 flex-1 group">
-                <div
-                    class="relative w-full bg-slate-100 rounded-t-lg overflow-hidden h-full flex items-end group-hover:bg-slate-200 transition-colors">
-                    <div class="w-full bg-teal-600 rounded-t-lg transition-all duration-500 ease-out group-hover:bg-teal-500"
+                <div class="relative w-full bg-slate-100 rounded-t-lg overflow-hidden h-full flex items-end group-hover:bg-slate-200 transition-colors">
+                    <div class="w-full bg-primary rounded-t-lg transition-all duration-500 ease-out group-hover:bg-blue-600"
                         [style.height.%]="item.value">
                     </div>
                     <!-- Tooltip -->
-                    <div
-                        class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                        %{{ item.value }}
+                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-mono">
+                        ₺{{ item.amount | number:'1.0-0' }}
                     </div>
                 </div>
                 <span class="text-xs font-medium text-slate-500">{{ item.month }}</span>
             </div>
-
         </div>
-    </app-card>
+    </div>
 
-    <!-- Recent Transactions -->
-    <app-card title="Rapor Detayları">
+    <!-- Recent Transactions Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-slate-100">
+            <h2 class="text-lg font-bold text-slate-900">Raporlanan Fatura Listesi</h2>
+        </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-500">
                     <tr>
-                        <th class="px-4 py-3 font-semibold">Fatura No</th>
-                        <th class="px-4 py-3 font-semibold">Müşteri</th>
-                        <th class="px-4 py-3 font-semibold">Tarih</th>
-                        <th class="px-4 py-3 font-semibold">Durum</th>
-                        <th class="px-4 py-3 font-semibold text-right">Tutar</th>
+                        <th class="px-6 py-4 font-semibold">Fatura No</th>
+                        <th class="px-6 py-4 font-semibold">Müşteri</th>
+                        <th class="px-6 py-4 font-semibold">Tarih</th>
+                        <th class="px-6 py-4 font-semibold">Durum</th>
+                        <th class="px-6 py-4 font-semibold text-right">Vergi</th>
+                        <th class="px-6 py-4 font-semibold text-right">Toplam Tutar</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200">
-                    <tr *ngFor="let item of recentTransactions" class="hover:bg-slate-50">
-                        <td class="px-4 py-4 font-medium text-slate-900">{{ item.id }}</td>
-                        <td class="px-4 py-4 text-slate-600">{{ item.customer }}</td>
-                        <td class="px-4 py-4 text-slate-500">{{ item.date }}</td>
-                        <td class="px-4 py-4">
-                            <span [class]="'px-2.5 py-0.5 rounded-full text-xs font-bold ' + item.statusClass">
-                                {{ item.status }}
+                <tbody class="divide-y divide-slate-100">
+                    <tr *ngFor="let item of filteredInvoices" class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-semibold text-slate-900">{{ item.invoiceNo }}</td>
+                        <td class="px-6 py-4 text-slate-700 font-medium">{{ item.customerName }}</td>
+                        <td class="px-6 py-4 text-slate-500">{{ item.date | date:'dd.MM.yyyy' }}</td>
+                        <td class="px-6 py-4">
+                            <span [class]="'px-2.5 py-1 rounded-full text-xs font-bold ' + getStatusClass(item.status)">
+                                {{ getStatusLabel(item.status) }}
                             </span>
                         </td>
-                        <td class="px-4 py-4 text-right font-medium text-slate-900">{{ item.amount }}</td>
+                        <td class="px-6 py-4 text-right text-slate-600 font-mono">₺{{ (item.taxTotal || 0) | number:'1.2-2' }}</td>
+                        <td class="px-6 py-4 text-right font-bold text-slate-900 font-mono">₺{{ (item.total || 0) | number:'1.2-2' }}</td>
+                    </tr>
+                    <tr *ngIf="filteredInvoices.length === 0">
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-400">Seçilen kriterlerde fatura kaydı bulunamadı.</td>
                     </tr>
                 </tbody>
             </table>
         </div>
-    </app-card>
+    </div>
 </div>

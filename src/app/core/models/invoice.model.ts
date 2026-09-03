@@ -21,7 +21,7 @@ export interface Invoice {
     subtotal: number;
     taxTotal: number;
     total: number;
-    status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+    status: 'draft' | 'sent' | 'pending' | 'paid' | 'overdue' | 'cancelled';
     notes?: string;
     userId: string;
     createdAt?: Date;
@@ -44,7 +44,7 @@ export interface InvoiceFormData {
     customerAddress?: string;
     items: InvoiceItem[];
     notes?: string;
-    status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+    status: 'draft' | 'sent' | 'pending' | 'paid' | 'overdue' | 'cancelled';
     // New fields
     countryCode?: string;
     taxLabel?: string;

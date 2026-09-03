@@ -1,6 +1,6 @@
 import { Injectable, inject, PLATFORM_ID, Injector } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { Firestore, collection, collectionData, doc, addDoc, updateDoc, deleteDoc, getDoc, query, where, serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, collection, collectionData, doc, addDoc, updateDoc, deleteDoc, getDoc, query, where, serverTimestamp, onSnapshot } from '@angular/fire/firestore';
 import { Auth } from '@angular/fire/auth';
 import { Invoice, InvoiceFormData, InvoiceItem } from '../models/invoice.model';
 import { Observable, map, of, from, switchMap } from 'rxjs';
@@ -50,20 +50,43 @@ export class InvoiceService {
                     return of([]);
                 }
 
-                const invoicesCol = collection(firestore, 'invoices');
-                const q = query(invoicesCol, where('userId', '==', userId));
+                return new Observable<Invoice[]>(subscriber => {
+                    const invoicesCol = collection(firestore, 'invoices');
+                    const q = query(invoicesCol, where('userId', '==', userId));
 
-                return collectionData(q, { idField: 'id' }).pipe(
-                    map(invoices => {
-                        return (invoices as Invoice[]).sort((a, b) => {
-                            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                            return dateB - dateA;
+                    const unsubscribe = onSnapshot(q, (snapshot) => {
+                        const invoices: Invoice[] = snapshot.docs.map(doc => {
+                            const data = doc.data();
+                            return {
+                                id: doc.id,
+                                ...data
+                            } as Invoice;
                         });
-                    })
-                );
+
+                        invoices.sort((a, b) => {
+                            const timeA = this.parseDateToTime(a.createdAt) || this.parseDateToTime(a.date);
+                            const timeB = this.parseDateToTime(b.createdAt) || this.parseDateToTime(b.date);
+                            return timeB - timeA;
+                        });
+
+                        subscriber.next(invoices);
+                    }, (error) => {
+                        console.error('Faturalar dinlenirken hata:', error);
+                        subscriber.error(error);
+                    });
+
+                    return () => unsubscribe();
+                });
             })
         );
+    }
+
+    private parseDateToTime(val: any): number {
+        if (!val) return 0;
+        if (typeof val.toDate === 'function') return val.toDate().getTime();
+        if (typeof val.seconds === 'number') return val.seconds * 1000;
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? 0 : d.getTime();
     }
 
     /**
@@ -96,7 +119,7 @@ export class InvoiceService {
         const { subtotal, taxTotal, total } = this.calculateTotals(data);
         const invoicesCol = collection(this.firestore, 'invoices');
 
-        const invoiceData = {
+        const invoiceData = this.removeUndefinedFields({
             ...data,
             subtotal,
             taxTotal,
@@ -104,7 +127,7 @@ export class InvoiceService {
             userId,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
-        };
+        });
 
         const docRef = await addDoc(invoicesCol, invoiceData);
         return docRef.id;
@@ -121,21 +144,30 @@ export class InvoiceService {
             updatedAt: serverTimestamp()
         };
 
-        // Eğer items güncelleniyorsa toplamları yeniden hesapla
-        // Partial data geldiği için tam hesaplama için mevcut veriye ihtiyaç olabilir ama 
-        // şimdilik data içinde gerekli alanların olduğunu varsayıyoruz veya
-        // kullanıcıdan tam form datası gelmesi beklenir.
         if (data.items) {
-            // Type assertion for Partial<InvoiceFormData> to InvoiceFormData for calculation
-            // safe assumption if the logic guarantees items+rates are passed together or defaults strictly handled
             const { subtotal, taxTotal, total } = this.calculateTotals(data as InvoiceFormData);
             updateData.subtotal = subtotal;
             updateData.taxTotal = taxTotal;
             updateData.total = total;
         }
 
+        const cleanedData = this.removeUndefinedFields(updateData);
         const invoiceRef = doc(this.firestore, 'invoices', id);
-        await updateDoc(invoiceRef, updateData);
+        await updateDoc(invoiceRef, cleanedData);
+    }
+
+    private removeUndefinedFields(obj: any): any {
+        if (obj === null || obj === undefined) return null;
+        if (typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) return obj.map(item => this.removeUndefinedFields(item));
+
+        const result: any = {};
+        for (const key of Object.keys(obj)) {
+            if (obj[key] !== undefined) {
+                result[key] = this.removeUndefinedFields(obj[key]);
+            }
+        }
+        return result;
     }
 
     /**

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { LanguageService } from '../../services/language.service';
+import { ThemeService } from '../../services/theme.service';
 
 @Component({
     selector: 'app-sidebar',
@@ -14,6 +15,7 @@ import { LanguageService } from '../../services/language.service';
 export class SidebarComponent {
     private authService = inject(AuthService);
     lang = inject(LanguageService);
+    themeService = inject(ThemeService);
 
     menuItems = [
         { id: 'dashboard', icon: 'dashboard', labelKey: 'sidebar.dashboard', route: '/dashboard' },

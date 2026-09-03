@@ -1,11 +1,16 @@
-import { Component, OnInit, inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, inject, PLATFORM_ID, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { InvoiceService } from '../../core/services/invoice.service';
 import { CustomerService } from '../../core/services/customer.service';
+import { AuthService } from '../../core/services/auth.service';
+import { LanguageService } from '../../core/services/language.service';
 import { Invoice, InvoiceFormData, InvoiceItem } from '../../core/models/invoice.model';
 import { Customer } from '../../core/models/customer.model';
+import { UserProfile } from '../../core/models/user.model';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 @Component({
     selector: 'app-invoice-list',
@@ -17,7 +22,11 @@ import { Customer } from '../../core/models/customer.model';
 export class InvoiceListComponent implements OnInit {
     private invoiceService = inject(InvoiceService);
     private customerService = inject(CustomerService);
+    private authService = inject(AuthService);
     private platformId = inject(PLATFORM_ID);
+    lang = inject(LanguageService);
+
+    @ViewChild('invoicePreviewCard') invoicePreviewCardRef!: ElementRef<HTMLElement>;
 
     invoices: Invoice[] = [];
     filteredInvoices: Invoice[] = [];
@@ -27,11 +36,21 @@ export class InvoiceListComponent implements OnInit {
     statusFilter = 'all';
     isLoading = false;
 
+    // Pagination
+    currentPage = 1;
+    pageSize = 8;
+
     // Modal state
     showModal = false;
     isEditing = false;
     editingInvoiceId: string | null = null;
     isSaving = false;
+
+    // Preview modal state
+    showPreviewModal = false;
+    previewInvoice: Invoice | null = null;
+    userProfile: UserProfile | null = null;
+    isGeneratingPdf = false;
 
     // Form data
     formData: InvoiceFormData = this.getEmptyForm();
@@ -55,11 +74,17 @@ export class InvoiceListComponent implements OnInit {
     ];
 
     ngOnInit(): void {
-        // SSR'da veri yükleme yapma
         if (isPlatformBrowser(this.platformId)) {
             this.loadInvoices();
             this.loadCustomers();
+            this.loadUserProfile();
         }
+    }
+
+    private loadUserProfile() {
+        this.authService.userProfile$.subscribe(profile => {
+            this.userProfile = profile;
+        });
     }
 
     private loadInvoices(): void {
@@ -88,12 +113,10 @@ export class InvoiceListComponent implements OnInit {
     filterInvoices(): void {
         let result = [...this.invoices];
 
-        // Status filter
         if (this.statusFilter !== 'all') {
             result = result.filter(inv => inv.status === this.statusFilter);
         }
 
-        // Search filter
         if (this.searchTerm.trim()) {
             const term = this.searchTerm.toLowerCase();
             result = result.filter(inv =>
@@ -103,6 +126,23 @@ export class InvoiceListComponent implements OnInit {
         }
 
         this.filteredInvoices = result;
+        this.currentPage = 1;
+    }
+
+    // Pagination getters
+    get totalPages(): number {
+        return Math.ceil(this.filteredInvoices.length / this.pageSize) || 1;
+    }
+
+    get paginatedInvoices(): Invoice[] {
+        const start = (this.currentPage - 1) * this.pageSize;
+        return this.filteredInvoices.slice(start, start + this.pageSize);
+    }
+
+    setPage(page: number): void {
+        if (page >= 1 && page <= this.totalPages) {
+            this.currentPage = page;
+        }
     }
 
     // Selection methods
@@ -115,10 +155,10 @@ export class InvoiceListComponent implements OnInit {
     }
 
     toggleSelectAll(): void {
-        if (this.selectedIds.size === this.filteredInvoices.length) {
+        if (this.selectedIds.size === this.paginatedInvoices.length) {
             this.selectedIds.clear();
         } else {
-            this.filteredInvoices.forEach(inv => {
+            this.paginatedInvoices.forEach(inv => {
                 if (inv.id) this.selectedIds.add(inv.id);
             });
         }
@@ -129,8 +169,8 @@ export class InvoiceListComponent implements OnInit {
     }
 
     get isAllSelected(): boolean {
-        return this.filteredInvoices.length > 0 &&
-            this.selectedIds.size === this.filteredInvoices.length;
+        return this.paginatedInvoices.length > 0 &&
+            this.selectedIds.size === this.paginatedInvoices.length;
     }
 
     // Modal methods
@@ -139,7 +179,7 @@ export class InvoiceListComponent implements OnInit {
         this.formData.invoiceNo = this.invoiceService.generateInvoiceNumber();
         this.isEditing = false;
         this.editingInvoiceId = null;
-        this.setCountryDetails('TR'); // Default
+        this.setCountryDetails('TR');
         this.showModal = true;
     }
 
@@ -160,13 +200,7 @@ export class InvoiceListComponent implements OnInit {
             additionalTaxes: invoice.additionalTaxes || []
         };
 
-        if (invoice.countryCode) {
-            this.setCountryDetails(invoice.countryCode);
-        } else {
-            this.setCountryDetails('TR');
-        }
-
-        // If saved invoice has specific tax rate/label, use them (in case defaults changed)
+        this.setCountryDetails(invoice.countryCode || 'TR');
         if (invoice.taxRate !== undefined) this.taxRate = invoice.taxRate;
         if (invoice.taxLabel) this.taxLabel = invoice.taxLabel;
 
@@ -183,7 +217,6 @@ export class InvoiceListComponent implements OnInit {
     async saveInvoice(): Promise<void> {
         if (!this.formData.customerName || this.formData.items.length === 0) return;
 
-        // Populate calculated fields for the model
         const invoiceData: InvoiceFormData = {
             ...this.formData,
             countryCode: this.formData.countryCode,
@@ -199,9 +232,10 @@ export class InvoiceListComponent implements OnInit {
                 await this.invoiceService.createInvoice(invoiceData);
             }
             this.closeModal();
-            this.loadInvoices(); // Reload list
-        } catch (error) {
+            this.loadInvoices();
+        } catch (error: any) {
             console.error('Fatura kaydedilirken hata:', error);
+            alert('Fatura kaydedilirken bir hata oluştu: ' + (error?.message || error));
         } finally {
             this.isSaving = false;
         }
@@ -318,6 +352,67 @@ export class InvoiceListComponent implements OnInit {
         return this.formNetSubtotal + this.formTaxTotal + this.formAdditionalTaxTotal;
     }
 
+    // Preview & PDF
+    openPreviewModal(invoice: Invoice): void {
+        this.previewInvoice = invoice;
+        this.showPreviewModal = true;
+    }
+
+    closePreviewModal(): void {
+        this.showPreviewModal = false;
+        this.previewInvoice = null;
+    }
+
+    async downloadPdf(): Promise<void> {
+        if (!isPlatformBrowser(this.platformId) || !this.invoicePreviewCardRef?.nativeElement || !this.previewInvoice) return;
+
+        this.isGeneratingPdf = true;
+        try {
+            const element = this.invoicePreviewCardRef.nativeElement;
+            const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgWidth = 210;
+            const pageHeight = 297;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
+            pdf.save(`${this.previewInvoice.invoiceNo}.pdf`);
+        } catch (error) {
+            console.error('PDF oluşturma hatası:', error);
+        } finally {
+            this.isGeneratingPdf = false;
+        }
+    }
+
+    printInvoice(): void {
+        if (isPlatformBrowser(this.platformId)) {
+            window.print();
+        }
+    }
+
+    exportToCsv(): void {
+        if (this.filteredInvoices.length === 0) return;
+        const headers = ['Fatura No', 'Müşteri Adı', 'E-posta', 'Tarih', 'Vade Tarihi', 'Tutar (TL)', 'Durum'];
+        const rows = this.filteredInvoices.map(inv => [
+            `"${inv.invoiceNo}"`,
+            `"${inv.customerName}"`,
+            `"${inv.customerEmail || ''}"`,
+            `"${inv.date}"`,
+            `"${inv.dueDate}"`,
+            `"${inv.total || 0}"`,
+            `"${this.getStatusLabel(inv.status)}"`
+        ]);
+
+        const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `faturalar_${new Date().toISOString().split('T')[0]}.csv`);
+        link.click();
+    }
+
     // Delete methods
     confirmDelete(id: string): void {
         this.deletingInvoiceId = id;
@@ -335,7 +430,7 @@ export class InvoiceListComponent implements OnInit {
         try {
             await this.invoiceService.deleteInvoice(this.deletingInvoiceId);
             this.selectedIds.delete(this.deletingInvoiceId);
-            this.loadInvoices(); // Reload list
+            this.loadInvoices();
         } catch (error) {
             console.error('Fatura silinirken hata:', error);
         } finally {
@@ -349,7 +444,7 @@ export class InvoiceListComponent implements OnInit {
         try {
             await this.invoiceService.deleteInvoices(Array.from(this.selectedIds));
             this.selectedIds.clear();
-            this.loadInvoices(); // Reload list
+            this.loadInvoices();
         } catch (error) {
             console.error('Faturalar silinirken hata:', error);
         }
@@ -360,7 +455,7 @@ export class InvoiceListComponent implements OnInit {
         if (!invoice.id) return;
         try {
             await this.invoiceService.updateInvoiceStatus(invoice.id, status);
-            this.loadInvoices(); // Reload to reflect changes if needed
+            this.loadInvoices();
         } catch (error) {
             console.error('Durum güncellenirken hata:', error);
         }
