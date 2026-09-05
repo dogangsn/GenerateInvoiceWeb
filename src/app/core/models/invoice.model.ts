@@ -2,7 +2,7 @@ export interface InvoiceItem {
     description: string;
     quantity: number;
     unitPrice: number;
-    taxRate?: number; // Kept for backward compatibility if needed, but primary logic moves to global tax
+    taxRate?: number;
     discount?: number;
     total?: number;
 }
@@ -27,6 +27,7 @@ export interface Invoice {
     createdAt?: Date;
     updatedAt?: Date;
     // New fields
+    invoiceType?: 'commercial' | 'proforma';
     countryCode?: string;
     taxLabel?: string;
     taxRate?: number;
@@ -46,6 +47,7 @@ export interface InvoiceFormData {
     notes?: string;
     status: 'draft' | 'sent' | 'pending' | 'paid' | 'overdue' | 'cancelled';
     // New fields
+    invoiceType?: 'commercial' | 'proforma';
     countryCode?: string;
     taxLabel?: string;
     taxRate?: number;

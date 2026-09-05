@@ -13,7 +13,9 @@ export interface UserProfile {
     bankName: string | null;
     logoUrl: string | null;
     phone: string | null;
+    plan: 'free' | 'pro' | 'enterprise';
+    monthlyInvoiceLimit?: number;
+    customerLimit?: number;
     createdAt: Date;
     updatedAt: Date;
 }
-

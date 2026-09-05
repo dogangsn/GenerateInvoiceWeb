@@ -1,103 +1,139 @@
-<div class="p-8 space-y-6 bg-slate-50 dark:bg-slate-950 min-h-screen transition-colors duration-200">
+<div class="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8 bg-slate-50 dark:bg-slate-950 min-h-screen transition-colors duration-200">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Hoş Geldiniz, {{ userName }}! 👋</h1>
-            <p class="text-slate-500 dark:text-slate-400 mt-1">{{ currentDate | date:'d MMMM yyyy, EEEE':'':'tr' }}</p>
+            <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Hoş Geldiniz, {{ userName }}! 👋</h1>
+            <p class="text-slate-500 dark:text-slate-400 mt-1 text-xs sm:text-sm">{{ currentDate | date:'d MMMM yyyy, EEEE':'':'tr' }}</p>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
             <!-- Kullanıcı Bilgisi -->
-            <div class="flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <div class="w-9 h-9 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center shadow-md">
-                    <span class="material-symbols-outlined text-white text-lg">person</span>
+            <div class="flex items-center gap-2.5 bg-white dark:bg-slate-900 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex-1 md:flex-none">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center shadow-md shrink-0">
+                    <span class="material-symbols-outlined text-white text-base sm:text-lg">person</span>
                 </div>
-                <div class="text-left">
-                    <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ userName }}</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">{{ userEmail }}</p>
+                <div class="text-left overflow-hidden">
+                    <p class="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white truncate">{{ userName }}</p>
+                    <p class="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">{{ userEmail }}</p>
                 </div>
-                <button (click)="logout()" 
-                    class="ml-2 p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
-                    title="Çıkış Yap">
-                    <span class="material-symbols-outlined text-[20px]">logout</span>
-                </button>
             </div>
             
-            <!-- Yeni Fatura Butonu -->
             <button routerLink="/create-invoice"
-                class="bg-primary text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg shadow-primary/25 flex items-center gap-2">
-                <span class="material-symbols-outlined text-[20px]">add</span>
-                Yeni Fatura
+                class="bg-primary text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg shadow-primary/25 flex items-center justify-center gap-2 text-xs sm:text-sm shrink-0">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                Yeni Fatura Kes
             </button>
+        </div>
+    </div>
+
+
+    <!-- Quick Actions (Hızlı Kısayollar) Bar -->
+    <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">HIZLI İŞLEMLER & KISAYOLLAR</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+            <a routerLink="/create-invoice" [queryParams]="{ type: 'commercial' }"
+                class="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-primary/10 dark:hover:bg-primary/20 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 transition-all group">
+                <span class="material-symbols-outlined text-2xl text-primary mb-1.5 group-hover:scale-110 transition-transform">post_add</span>
+                <span class="text-xs font-semibold">Satış Faturası</span>
+            </a>
+            <a routerLink="/create-invoice" [queryParams]="{ type: 'proforma' }"
+                class="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-purple-50 dark:hover:bg-purple-950/30 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 transition-all group">
+                <span class="material-symbols-outlined text-2xl text-purple-600 dark:text-purple-400 mb-1.5 group-hover:scale-110 transition-transform">request_quote</span>
+                <span class="text-xs font-semibold">Proforma Fatura</span>
+            </a>
+            <a routerLink="/customers"
+                class="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 transition-all group">
+                <span class="material-symbols-outlined text-2xl text-emerald-600 dark:text-emerald-400 mb-1.5 group-hover:scale-110 transition-transform">person_add</span>
+                <span class="text-xs font-semibold">Müşteri Ekle</span>
+            </a>
+            <a routerLink="/reports"
+                class="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-amber-50 dark:hover:bg-amber-950/30 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 transition-all group">
+                <span class="material-symbols-outlined text-2xl text-amber-600 dark:text-amber-400 mb-1.5 group-hover:scale-110 transition-transform">analytics</span>
+                <span class="text-xs font-semibold">Raporlar</span>
+            </a>
+            <a routerLink="/settings"
+                class="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-blue-50 dark:hover:bg-blue-950/30 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 transition-all group">
+                <span class="material-symbols-outlined text-2xl text-blue-600 dark:text-blue-400 mb-1.5 group-hover:scale-110 transition-transform">settings</span>
+                <span class="text-xs font-semibold">Firma Ayarları</span>
+            </a>
+            <a routerLink="/pricing"
+                class="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 border border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 transition-all group">
+                <span class="material-symbols-outlined text-2xl text-indigo-600 dark:text-indigo-400 mb-1.5 group-hover:scale-110 transition-transform">workspace_premium</span>
+                <span class="text-xs font-semibold">Paket & Plan</span>
+            </a>
         </div>
     </div>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+        <!-- Toplam Kesilen Ciro -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Toplam Gelir</p>
-                    <p class="text-2xl font-bold text-slate-900 dark:text-white mt-1">₺{{ stats.totalRevenue | number:'1.0-0' }}</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Kesilen Toplam Ciro</p>
+                    <p class="text-2xl font-black text-slate-900 dark:text-white mt-1">₺{{ stats.totalBilled | number:'1.2-2' }}</p>
                     <div class="flex items-center gap-1 mt-2">
                         <span class="material-symbols-outlined text-green-500 text-[16px]">trending_up</span>
                         <span class="text-xs font-semibold text-green-500">+{{ stats.monthlyGrowth }}%</span>
-                        <span class="text-xs text-slate-400">bu ay</span>
+                        <span class="text-xs text-slate-400">geçen aya göre</span>
                     </div>
                 </div>
-                <div class="w-14 h-14 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                    <span class="material-symbols-outlined text-white text-2xl">account_balance_wallet</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tahsil Edilen Gelir -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Tahsil Edilen (Ödenen)</p>
+                    <p class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">₺{{ stats.totalRevenue | number:'1.2-2' }}</p>
+                    <p class="text-xs text-slate-400 mt-2">{{ stats.paidInvoices }} adet ödenmiş fatura</p>
+                </div>
+                <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
                     <span class="material-symbols-outlined text-white text-2xl">payments</span>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+        <!-- Bekleyen Alacaklar -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Toplam Fatura</p>
-                    <p class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ stats.totalInvoices }}</p>
-                    <p class="text-xs text-slate-400 mt-2">Tüm zamanlar</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Bekleyen Tahsilat</p>
+                    <p class="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">₺{{ stats.pendingRevenue | number:'1.2-2' }}</p>
+                    <p class="text-xs text-slate-400 mt-2">{{ stats.pendingInvoices }} adet bekleyen fatura</p>
                 </div>
-                <div class="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                    <span class="material-symbols-outlined text-white text-2xl">receipt_long</span>
+                <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-700 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30">
+                    <span class="material-symbols-outlined text-white text-2xl">pending_actions</span>
                 </div>
             </div>
         </div>
 
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+        <!-- Proforma & Fatura Adedi -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Bekleyen Ödemeler</p>
-                    <p class="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{{ stats.pendingInvoices }}</p>
-                    <p class="text-xs text-slate-400 mt-2">Tahsil edilecek</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Toplam Kayıtlı Fatura</p>
+                    <p class="text-2xl font-black text-purple-600 dark:text-purple-400 mt-1">{{ stats.totalInvoices }}</p>
+                    <p class="text-xs text-slate-400 mt-2">{{ stats.proformaCount }} proforma teklif</p>
                 </div>
-                <div class="w-14 h-14 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30">
-                    <span class="material-symbols-outlined text-white text-2xl">schedule</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Ödenen Faturalar</p>
-                    <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{{ stats.paidInvoices }}</p>
-                    <p class="text-xs text-slate-400 mt-2">Tamamlanan</p>
-                </div>
-                <div class="w-14 h-14 bg-gradient-to-br from-indigo-400 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                    <span class="material-symbols-outlined text-white text-2xl">task_alt</span>
+                <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30">
+                    <span class="material-symbols-outlined text-white text-2xl">description</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Charts Grid -->
+    <!-- Charts & Analytics Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Revenue Chart -->
-        <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
+        <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Gelir Analizi</h2>
-                    <p class="text-xs text-slate-400">Aylık bazda ciro değişimi</p>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Aylık Ciro Grafiği</h2>
+                    <p class="text-xs text-slate-400">Aylık toplam faturayla kesilen tutar analizi</p>
                 </div>
                 <span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-xs font-semibold">2026</span>
             </div>
@@ -106,24 +142,44 @@
             </div>
         </div>
 
-        <!-- Status Chart -->
-        <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <!-- Top Customers Card -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
             <div>
-                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Fatura Durum Dağılımı</h2>
-                <p class="text-xs text-slate-400 mb-4">Oransal görünüm</p>
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-1">En Çok Satış Yapılan Müşteriler</h2>
+                <p class="text-xs text-slate-400 mb-4">Ciro hacmine göre sıralı</p>
+
+                <div class="space-y-4">
+                    <div *ngFor="let cust of topCustomers" class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                                {{ cust.name.charAt(0).toUpperCase() }}
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-slate-900 dark:text-white">{{ cust.name }}</p>
+                                <p class="text-[10px] text-slate-400">{{ cust.invoiceCount }} fatura</p>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-slate-900 dark:text-white">₺{{ cust.totalAmount | number:'1.0-0' }}</span>
+                    </div>
+
+                    <div *ngIf="topCustomers.length === 0" class="text-center py-6 text-slate-400 text-xs">
+                        Henüz müşteri satış verisi yok.
+                    </div>
+                </div>
             </div>
-            <div class="h-[220px] my-auto">
-                <canvas #statusChart></canvas>
-            </div>
+
+            <a routerLink="/customers" class="mt-4 w-full py-2 text-center text-xs font-semibold text-primary dark:text-blue-400 hover:underline">
+                Müşterileri Yönet →
+            </a>
         </div>
     </div>
 
     <!-- Recent Invoices Table -->
-    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div>
-                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Son Faturalar</h2>
-                <p class="text-xs text-slate-400">Son eklenen veya güncellenen kayıtlar</p>
+                <h2 class="text-lg font-bold text-slate-900 dark:text-white">Son Eklenen Faturalar</h2>
+                <p class="text-xs text-slate-400">Son kesilen fatura ve proforma kayıtları</p>
             </div>
             <a routerLink="/invoices" class="text-sm font-semibold text-primary dark:text-blue-400 hover:underline flex items-center gap-1">
                 Tümünü Gör
@@ -135,6 +191,7 @@
                 <thead class="bg-slate-50 dark:bg-slate-800/80 text-xs uppercase text-slate-500 dark:text-slate-400">
                     <tr>
                         <th class="px-6 py-3.5 font-semibold">Fatura No</th>
+                        <th class="px-6 py-3.5 font-semibold">Tür</th>
                         <th class="px-6 py-3.5 font-semibold">Müşteri</th>
                         <th class="px-6 py-3.5 font-semibold">Tarih</th>
                         <th class="px-6 py-3.5 font-semibold text-right">Tutar</th>
@@ -144,6 +201,11 @@
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     <tr *ngFor="let invoice of recentInvoices" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                         <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ invoice.invoiceNo }}</td>
+                        <td class="px-6 py-4">
+                            <span [class]="'px-2 py-0.5 rounded text-[11px] font-bold uppercase ' + (invoice.invoiceType === 'proforma' ? 'bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300' : 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300')">
+                                {{ invoice.invoiceType === 'proforma' ? 'Proforma' : 'Satış' }}
+                            </span>
+                        </td>
                         <td class="px-6 py-4 font-medium text-slate-700 dark:text-slate-300">{{ invoice.customerName }}</td>
                         <td class="px-6 py-4 text-slate-500 dark:text-slate-400">{{ invoice.date | date:'dd.MM.yyyy' }}</td>
                         <td class="px-6 py-4 text-right font-bold text-slate-900 dark:text-white">₺{{ invoice.amount | number:'1.2-2' }}</td>
@@ -154,7 +216,7 @@
                         </td>
                     </tr>
                     <tr *ngIf="recentInvoices.length === 0">
-                        <td colspan="5" class="px-6 py-8 text-center text-slate-400">Henüz fatura eklenmedi.</td>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-400">Henüz fatura eklenmedi.</td>
                     </tr>
                 </tbody>
             </table>

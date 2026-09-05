@@ -218,26 +218,25 @@ export class InvoiceService {
     private calculateTotals(data: InvoiceFormData): { subtotal: number; taxTotal: number; total: number } {
         let subtotal = 0;
         let totalDiscount = 0;
+        let mainTaxTotal = 0;
         const items = data.items || [];
 
-        // 1. Calculate Gross Subtotal & Discount
         items.forEach(item => {
             const quantity = item.quantity || 0;
             const unitPrice = item.unitPrice || 0;
             const gross = quantity * unitPrice;
             const discount = gross * ((item.discount || 0) / 100);
+            const net = gross - discount;
 
             subtotal += gross;
             totalDiscount += discount;
+
+            const itemTaxRate = item.taxRate !== undefined ? item.taxRate : (data.taxRate !== undefined ? data.taxRate : 20);
+            mainTaxTotal += net * (itemTaxRate / 100);
         });
 
         const netSubtotal = subtotal - totalDiscount;
 
-        // 2. Calculate Main Tax
-        const taxRate = data.taxRate || 0;
-        const mainTax = netSubtotal * (taxRate / 100);
-
-        // 3. Calculate Additional Taxes
         let additionalTaxTotal = 0;
         if (data.additionalTaxes) {
             data.additionalTaxes.forEach(tax => {
@@ -245,12 +244,12 @@ export class InvoiceService {
             });
         }
 
-        const taxTotal = mainTax + additionalTaxTotal;
+        const taxTotal = mainTaxTotal + additionalTaxTotal;
         const total = netSubtotal + taxTotal;
 
         return {
-            subtotal, // Gross subtotal stored
-            taxTotal, // Total tax (Main + Additional)
+            subtotal,
+            taxTotal,
             total
         };
     }

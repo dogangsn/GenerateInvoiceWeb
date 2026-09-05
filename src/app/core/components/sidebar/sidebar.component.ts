@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -13,6 +13,9 @@ import { ThemeService } from '../../services/theme.service';
     styleUrl: './sidebar.component.css'
 })
 export class SidebarComponent {
+    @Input() isOpen = false;
+    @Output() closeMobileMenu = new EventEmitter<void>();
+
     private authService = inject(AuthService);
     lang = inject(LanguageService);
     themeService = inject(ThemeService);
@@ -22,6 +25,7 @@ export class SidebarComponent {
         { id: 'invoices', icon: 'description', labelKey: 'sidebar.invoices', route: '/invoices' },
         { id: 'customers', icon: 'group', labelKey: 'sidebar.customers', route: '/customers' },
         { id: 'reports', icon: 'bar_chart', labelKey: 'sidebar.reports', route: '/reports' },
+        { id: 'pricing', icon: 'workspace_premium', labelKey: 'sidebar.pricing', route: '/pricing' },
         { id: 'settings', icon: 'settings', labelKey: 'sidebar.settings', route: '/settings' },
     ];
 
@@ -29,3 +33,4 @@ export class SidebarComponent {
         await this.authService.logout();
     }
 }
+

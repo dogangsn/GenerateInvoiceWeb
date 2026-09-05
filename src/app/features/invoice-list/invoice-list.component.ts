@@ -12,6 +12,9 @@ import { UserProfile } from '../../core/models/user.model';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+import { UserService } from '../../core/services/user.service';
+import { Router } from '@angular/router';
+
 @Component({
     selector: 'app-invoice-list',
     standalone: true,
@@ -23,6 +26,8 @@ export class InvoiceListComponent implements OnInit {
     private invoiceService = inject(InvoiceService);
     private customerService = inject(CustomerService);
     private authService = inject(AuthService);
+    private userService = inject(UserService);
+    private router = inject(Router);
     private platformId = inject(PLATFORM_ID);
     lang = inject(LanguageService);
 
@@ -34,6 +39,7 @@ export class InvoiceListComponent implements OnInit {
     selectedIds: Set<string> = new Set();
     searchTerm = '';
     statusFilter = 'all';
+    typeFilter: 'all' | 'commercial' | 'proforma' = 'all';
     isLoading = false;
 
     // Pagination
@@ -59,6 +65,7 @@ export class InvoiceListComponent implements OnInit {
     countryName = 'Türkiye';
     taxLabel = 'KDV';
     taxRate = 20;
+    availableTaxRates: number[] = [20, 10, 1, 0];
 
     // Delete confirmation
     showDeleteConfirm = false;
@@ -112,6 +119,10 @@ export class InvoiceListComponent implements OnInit {
 
     filterInvoices(): void {
         let result = [...this.invoices];
+
+        if (this.typeFilter !== 'all') {
+            result = result.filter(inv => (inv.invoiceType || 'commercial') === this.typeFilter);
+        }
 
         if (this.statusFilter !== 'all') {
             result = result.filter(inv => inv.status === this.statusFilter);
@@ -174,7 +185,19 @@ export class InvoiceListComponent implements OnInit {
     }
 
     // Modal methods
-    openAddModal(): void {
+    async openAddModal(): Promise<void> {
+        const currentUser = this.authService.currentUser;
+        if (currentUser) {
+            const profile = await this.userService.getUserProfile(currentUser.uid);
+            if (profile && (profile.plan === 'free' || !profile.plan)) {
+                if (this.invoices.length >= (profile.monthlyInvoiceLimit || 5)) {
+                    alert('⚠️ Ücretsiz Plan fatura limitine ulaştınız! (Maksimum 5 Fatura).\n\nSınırsız fatura oluşturmak için lütfen Pro Plana yükseltin.');
+                    this.router.navigate(['/pricing']);
+                    return;
+                }
+            }
+        }
+
         this.formData = this.getEmptyForm();
         this.formData.invoiceNo = this.invoiceService.generateInvoiceNumber();
         this.isEditing = false;
@@ -186,6 +209,7 @@ export class InvoiceListComponent implements OnInit {
     openEditModal(invoice: Invoice): void {
         this.formData = {
             invoiceNo: invoice.invoiceNo,
+            invoiceType: invoice.invoiceType || 'commercial',
             date: this.formatDateForInput(invoice.date),
             dueDate: this.formatDateForInput(invoice.dueDate),
             customerId: invoice.customerId,
@@ -255,29 +279,24 @@ export class InvoiceListComponent implements OnInit {
 
     // Country selection
     setCountryDetails(code: string) {
-        const countryMap: { [key: string]: { name: string, taxLabel: string, taxRate: number } } = {
-            'TR': { name: 'Türkiye', taxLabel: 'KDV', taxRate: 20 },
-            'DE': { name: 'Almanya', taxLabel: 'MwSt', taxRate: 19 },
-            'FR': { name: 'Fransa', taxLabel: 'TVA', taxRate: 20 },
-            'UK': { name: 'Birleşik Krallık', taxLabel: 'VAT', taxRate: 20 },
-            'ES': { name: 'İspanya', taxLabel: 'IVA', taxRate: 21 },
-            'IT': { name: 'İtalya', taxLabel: 'IVA', taxRate: 22 },
-            'NL': { name: 'Hollanda', taxLabel: 'BTW', taxRate: 21 },
-            'CA': { name: 'Kanada', taxLabel: 'GST/HST', taxRate: 5 },
-            'US': { name: 'ABD', taxLabel: 'Sales Tax', taxRate: 0 },
-            'AU': { name: 'Avustralya', taxLabel: 'GST', taxRate: 10 }
+        const countryMap: { [key: string]: { name: string, taxLabel: string, taxRate: number, rates: number[] } } = {
+            'TR': { name: 'Türkiye', taxLabel: 'KDV', taxRate: 20, rates: [20, 10, 1, 0] },
+            'DE': { name: 'Almanya', taxLabel: 'MwSt', taxRate: 19, rates: [19, 7, 0] },
+            'FR': { name: 'Fransa', taxLabel: 'TVA', taxRate: 20, rates: [20, 10, 5.5, 2.1, 0] },
+            'UK': { name: 'Birleşik Krallık', taxLabel: 'VAT', taxRate: 20, rates: [20, 5, 0] },
+            'ES': { name: 'İspanya', taxLabel: 'IVA', taxRate: 21, rates: [21, 10, 4, 0] },
+            'IT': { name: 'İtalya', taxLabel: 'IVA', taxRate: 22, rates: [22, 10, 5, 4, 0] },
+            'NL': { name: 'Hollanda', taxLabel: 'BTW', taxRate: 21, rates: [21, 9, 0] },
+            'CA': { name: 'Kanada', taxLabel: 'GST/HST', taxRate: 5, rates: [5, 0] },
+            'US': { name: 'ABD', taxLabel: 'Sales Tax', taxRate: 0, rates: [0, 5, 6, 7, 8.875] },
+            'AU': { name: 'Avustralya', taxLabel: 'GST', taxRate: 10, rates: [10, 0] }
         };
 
-        const details = countryMap[code];
-        if (details) {
-            this.countryName = details.name;
-            this.taxLabel = details.taxLabel;
-            this.taxRate = details.taxRate;
-        } else {
-            this.countryName = code;
-            this.taxLabel = 'Tax';
-            this.taxRate = 0;
-        }
+        const details = countryMap[code] || { name: code, taxLabel: 'Tax', taxRate: 20, rates: [20, 10, 1, 0] };
+        this.countryName = details.name;
+        this.taxLabel = details.taxLabel;
+        this.taxRate = details.taxRate;
+        this.availableTaxRates = details.rates;
         this.formData.countryCode = code;
         this.formData.taxRate = this.taxRate;
         this.formData.taxLabel = this.taxLabel;
@@ -307,6 +326,7 @@ export class InvoiceListComponent implements OnInit {
             description: '',
             quantity: 1,
             unitPrice: 0,
+            taxRate: this.taxRate,
             discount: 0
         });
     }
@@ -338,7 +358,13 @@ export class InvoiceListComponent implements OnInit {
     }
 
     get formTaxTotal(): number {
-        return this.formNetSubtotal * (this.taxRate / 100);
+        return this.formData.items.reduce((sum, item) => {
+            const gross = item.quantity * item.unitPrice;
+            const discountAmount = gross * ((item.discount || 0) / 100);
+            const net = gross - discountAmount;
+            const rate = item.taxRate !== undefined ? Number(item.taxRate) : this.taxRate;
+            return sum + (net * (rate / 100));
+        }, 0);
     }
 
     get formAdditionalTaxTotal(): number {
@@ -485,6 +511,7 @@ export class InvoiceListComponent implements OnInit {
 
         return {
             invoiceNo: '',
+            invoiceType: 'commercial',
             date: today.toISOString().split('T')[0],
             dueDate: dueDate.toISOString().split('T')[0],
             customerName: '',

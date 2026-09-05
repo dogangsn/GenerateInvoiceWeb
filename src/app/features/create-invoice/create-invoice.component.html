@@ -1,31 +1,64 @@
-<div class="flex h-screen overflow-hidden bg-slate-50">
+<div class="flex flex-col lg:flex-row min-h-screen lg:h-screen overflow-y-auto lg:overflow-hidden bg-slate-50">
+    <!-- Mobile Tab Bar (Visible on mobile/tablet only) -->
+    <div class="lg:hidden flex border-b border-slate-200 bg-white sticky top-0 z-20 shadow-sm shrink-0">
+        <button (click)="activeMobileTab = 'form'"
+            [class]="'flex-1 py-3 text-center font-bold text-sm flex items-center justify-center gap-2 border-b-2 transition-all ' + (activeMobileTab === 'form' ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-slate-500 hover:text-slate-900')">
+            <span class="material-symbols-outlined text-[18px]">edit_note</span>
+            Fatura Formu
+        </button>
+        <button (click)="activeMobileTab = 'preview'"
+            [class]="'flex-1 py-3 text-center font-bold text-sm flex items-center justify-center gap-2 border-b-2 transition-all ' + (activeMobileTab === 'preview' ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-slate-500 hover:text-slate-900')">
+            <span class="material-symbols-outlined text-[18px]">visibility</span>
+            A4 Önizleme
+        </button>
+    </div>
+
     <!-- Left Side: Form -->
-    <div class="w-1/2 h-full overflow-y-auto border-r border-slate-200 bg-white p-8">
-        <div class="max-w-2xl mx-auto space-y-8">
+    <div [class.hidden]="activeMobileTab !== 'form'" class="w-full lg:w-1/2 h-auto lg:h-full overflow-y-visible lg:overflow-y-auto border-r border-slate-200 bg-white p-4 sm:p-6 lg:p-8 lg:block">
+        <div class="max-w-2xl mx-auto space-y-6 sm:space-y-8">
             <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold text-slate-900">Yeni Fatura Oluştur</h1>
+                <h1 class="text-xl sm:text-2xl font-bold text-slate-900">Yeni Fatura Oluştur</h1>
                 <app-button variant="ghost" icon="arrow_back" (click)="goBack()">Geri Dön</app-button>
             </div>
 
             <!-- Fatura Bilgileri -->
             <section class="space-y-4">
-                <h2 class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Fatura Bilgileri</h2>
-                <div class="grid grid-cols-2 gap-4">
-                    <app-input label="Fatura Tipi" placeholder="Satış" [disabled]="true"></app-input>
-                    <app-input label="Fatura Senaryosu" placeholder="Temel Fatura" [disabled]="true"></app-input>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Fatura Belge Türü</h2>
+                <div [formGroup]="invoiceForm" class="grid grid-cols-2 gap-2 sm:gap-3 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                    <label class="flex items-center justify-center gap-2 py-2.5 rounded-lg cursor-pointer transition-all text-xs sm:text-sm font-semibold"
+                        [class.bg-white]="invoiceForm.get('invoiceType')?.value === 'commercial'"
+                        [class.text-primary]="invoiceForm.get('invoiceType')?.value === 'commercial'"
+                        [class.shadow-sm]="invoiceForm.get('invoiceType')?.value === 'commercial'"
+                        [class.text-slate-600]="invoiceForm.get('invoiceType')?.value !== 'commercial'">
+                        <input type="radio" formControlName="invoiceType" value="commercial" class="sr-only" />
+                        <span class="material-symbols-outlined text-[18px]">receipt_long</span>
+                        Satış Faturası
+                    </label>
+                    <label class="flex items-center justify-center gap-2 py-2.5 rounded-lg cursor-pointer transition-all text-xs sm:text-sm font-semibold"
+                        [class.bg-white]="invoiceForm.get('invoiceType')?.value === 'proforma'"
+                        [class.text-purple-600]="invoiceForm.get('invoiceType')?.value === 'proforma'"
+                        [class.shadow-sm]="invoiceForm.get('invoiceType')?.value === 'proforma'"
+                        [class.text-slate-600]="invoiceForm.get('invoiceType')?.value !== 'proforma'">
+                        <input type="radio" formControlName="invoiceType" value="proforma" class="sr-only" />
+                        <span class="material-symbols-outlined text-[18px]">request_quote</span>
+                        Proforma Fatura
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                     <app-input label="Fatura Tarihi" type="date"
                         [formControl]="$any(invoiceForm.get('date'))"></app-input>
-                    <app-input label="Fatura Saati" type="time"
-                        [formControl]="$any(invoiceForm.get('time'))"></app-input>
+                    <app-input label="Son Ödeme (Vade)" type="date"
+                        [formControl]="$any(invoiceForm.get('dueDate'))"></app-input>
                 </div>
             </section>
 
             <!-- Müşteri Bilgileri -->
             <section class="space-y-4">
-                <h2 class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Müşteri Bilgileri</h2>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Müşteri Bilgileri</h2>
                 <app-input label="Müşteri Adı / Ünvanı" placeholder="Müşteri adını girin"
                     [formControl]="$any(invoiceForm.get('customerName'))"></app-input>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <app-input label="Vergi Numarası" placeholder="Vergi numarasını girin"
                         [formControl]="$any(invoiceForm.get('taxId'))"></app-input>
                     <app-input label="Adres" placeholder="Müşteri adresini girin"
@@ -33,41 +66,60 @@
                 </div>
             </section>
 
-            <!-- Vergi Ayarları -->
+            <!-- Vergi & Ülke Ayarları -->
             <section class="space-y-4">
-                <h2 class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Vergi Ayarları ({{
-                    countryName }})
-                </h2>
-                <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                    <div class="flex-1">
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Vergi Adı</label>
-                        <input type="text" [value]="taxLabel" disabled
-                            class="w-full bg-white rounded border-slate-300 text-sm">
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Ülke & Vergi Formatı Seçimi</h2>
+                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">İşlem Yapılacak Ülke</label>
+                        <select [ngModel]="countryCode" (ngModelChange)="onCountryChange($event)" [ngModelOptions]="{standalone: true}"
+                            class="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20">
+                            <option value="TR">🇹🇷 Türkiye (KDV %20)</option>
+                            <option value="DE">🇩🇪 Almanya (MwSt %19)</option>
+                            <option value="FR">🇫🇷 Fransa (TVA %20)</option>
+                            <option value="UK">🇬🇧 Birleşik Krallık (VAT %20)</option>
+                            <option value="ES">🇪🇸 İspanya (IVA %21)</option>
+                            <option value="IT">🇮🇹 İtalya (IVA %22)</option>
+                            <option value="NL">🇳🇱 Hollanda (BTW %21)</option>
+                            <option value="CA">🇨🇦 Kanada (GST/HST %5)</option>
+                            <option value="US">🇺🇸 ABD (Sales Tax %0)</option>
+                            <option value="AU">🇦🇺 Avustralya (GST %10)</option>
+                        </select>
                     </div>
-                    <div class="w-24">
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Oran (%)</label>
-                        <input type="number" [value]="taxRate" disabled
-                            class="w-full bg-white rounded border-slate-300 text-sm">
+
+                    <div class="flex items-center gap-4 pt-2">
+                        <div class="flex-1">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Uygulanan Vergi Etiketi</label>
+                            <input type="text" [value]="taxLabel" disabled
+                                class="w-full h-9 px-3 bg-white rounded-lg border border-slate-200 text-sm font-semibold text-slate-700">
+                        </div>
+                        <div class="w-28">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Oran (%)</label>
+                            <input type="number" [value]="taxRate" disabled
+                                class="w-full h-9 px-3 bg-white rounded-lg border border-slate-200 text-sm font-bold text-slate-900 text-right">
+                        </div>
                     </div>
                 </div>
+            </section>
 
-                <!-- Ek Vergi -->
+            <!-- Ek Vergi -->
+            <section class="space-y-4">
                 <div class="space-y-4">
-                    <h3 class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Ek Vergiler</h3>
+                    <h3 class="text-base sm:text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Ek Vergiler</h3>
                     <div class="space-y-4">
                         <div *ngFor="let tax of additionalTaxes.controls; let i = index" [formGroup]="$any(tax)"
-                            class="flex gap-3 items-start p-4 bg-slate-50 rounded-lg border border-slate-200 group">
-                            <div class="flex-1">
+                            class="flex flex-col sm:flex-row gap-3 items-start p-4 bg-slate-50 rounded-lg border border-slate-200 group">
+                            <div class="flex-1 w-full">
                                 <label class="block text-xs font-medium text-slate-500 mb-1">Vergi Adı</label>
                                 <input type="text" formControlName="name"
                                     class="w-full rounded border-slate-300 text-sm" placeholder="Örn: ÖTV">
                             </div>
-                            <div class="w-32">
+                            <div class="w-full sm:w-32">
                                 <label class="block text-xs font-medium text-slate-500 mb-1">Oran (%)</label>
                                 <input type="number" formControlName="rate" min="0" max="100"
                                     class="w-full rounded border-slate-300 text-sm">
                             </div>
-                            <button (click)="removeAdditionalTax(i)" class="mt-6 text-slate-400 hover:text-red-600">
+                            <button (click)="removeAdditionalTax(i)" class="self-end sm:mt-6 text-slate-400 hover:text-red-600">
                                 <span class="material-symbols-outlined">delete</span>
                             </button>
                         </div>
@@ -82,39 +134,50 @@
 
             <!-- Fatura Kalemleri -->
             <section class="space-y-4">
-                <h2 class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Fatura Kalemleri</h2>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Fatura Kalemleri</h2>
 
                 <div class="space-y-4">
                     <div *ngFor="let item of items.controls; let i = index" [formGroup]="$any(item)"
-                        class="flex gap-3 items-start p-4 bg-slate-50 rounded-lg border border-slate-200 group">
+                        class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-start p-4 bg-slate-50 rounded-xl border border-slate-200 group">
                         <div class="flex-1">
                             <label class="block text-xs font-medium text-slate-500 mb-1">Açıklama</label>
                             <input type="text" formControlName="description"
-                                class="w-full rounded border-slate-300 text-sm" placeholder="Ürün/Hizmet adı">
+                                class="w-full rounded-lg border-slate-300 text-sm" placeholder="Ürün/Hizmet adı">
                         </div>
-                        <div class="w-20">
-                            <label class="block text-xs font-medium text-slate-500 mb-1">Miktar</label>
-                            <input type="number" formControlName="quantity"
-                                class="w-full rounded border-slate-300 text-sm">
+                        <div class="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
+                            <div class="w-full sm:w-20">
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Miktar</label>
+                                <input type="number" formControlName="quantity"
+                                    class="w-full rounded-lg border-slate-300 text-sm">
+                            </div>
+                            <div class="w-full sm:w-24">
+                                <label class="block text-xs font-medium text-slate-500 mb-1">Birim Fiyat</label>
+                                <input type="number" formControlName="unitPrice"
+                                    class="w-full rounded-lg border-slate-300 text-sm">
+                            </div>
+                            <div class="w-full sm:w-24">
+                                <label class="block text-xs font-medium text-slate-500 mb-1">{{ taxLabel }} %</label>
+                                <select formControlName="taxRate" class="w-full rounded-lg border-slate-300 text-sm font-semibold bg-white">
+                                    <option *ngFor="let r of availableTaxRates" [value]="r">%{{ r }}</option>
+                                </select>
+                            </div>
+                            <div class="w-full sm:w-20">
+                                <label class="block text-xs font-medium text-slate-500 mb-1">İndirim %</label>
+                                <input type="number" formControlName="discount" min="0" max="100"
+                                    class="w-full rounded-lg border-slate-300 text-sm">
+                            </div>
                         </div>
-                        <div class="w-24">
-                            <label class="block text-xs font-medium text-slate-500 mb-1">Birim Fiyat</label>
-                            <input type="number" formControlName="unitPrice"
-                                class="w-full rounded border-slate-300 text-sm">
+                        <div class="flex items-center justify-between sm:flex-col sm:justify-end sm:pt-6 border-t sm:border-t-0 pt-2 border-slate-200">
+                            <span class="sm:hidden text-xs font-semibold text-slate-500">Satır Toplamı:</span>
+                            <div class="text-right font-bold text-slate-900 text-sm">
+                                {{ (item.get('quantity')?.value * item.get('unitPrice')?.value * (1 -
+                                (item.get('discount')?.value || 0) / 100)) |
+                                currency:'TRY':'symbol-narrow':'1.2-2' }}
+                            </div>
+                            <button (click)="removeItem(i)" class="text-slate-400 hover:text-red-600 p-1">
+                                <span class="material-symbols-outlined">delete</span>
+                            </button>
                         </div>
-                        <div class="w-20">
-                            <label class="block text-xs font-medium text-slate-500 mb-1">İndirim %</label>
-                            <input type="number" formControlName="discount" min="0" max="100"
-                                class="w-full rounded border-slate-300 text-sm">
-                        </div>
-                        <div class="w-24 pt-6 text-right font-medium text-slate-900">
-                            {{ (item.get('quantity')?.value * item.get('unitPrice')?.value * (1 -
-                            (item.get('discount')?.value || 0) / 100)) |
-                            currency:'TRY':'symbol-narrow':'1.2-2' }}
-                        </div>
-                        <button (click)="removeItem(i)" class="mt-6 text-slate-400 hover:text-red-600">
-                            <span class="material-symbols-outlined">delete</span>
-                        </button>
                     </div>
                 </div>
 
@@ -126,110 +189,112 @@
             </section>
 
             <!-- Actions -->
-            <div class="flex items-center justify-end gap-4 pt-8 border-t border-slate-200">
-                <app-button variant="secondary">Taslak Olarak Kaydet</app-button>
+            <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-4 pt-6 sm:pt-8 border-t border-slate-200">
+                <app-button variant="secondary" (click)="goBack()">İptal</app-button>
                 <app-button variant="primary" (click)="saveInvoice()">Faturayı Oluştur</app-button>
             </div>
         </div>
     </div>
 
     <!-- Right Side: Preview -->
-    <div class="w-1/2 h-full bg-slate-100 p-8 overflow-y-auto flex justify-center items-start">
-        <!-- A4 Paper -->
-        <div
-            class="w-full max-w-[210mm] aspect-[210/297] bg-white shadow-2xl p-[10mm] md:p-[20mm] text-slate-900 text-sm relative">
-            <!-- Header -->
-            <div class="flex justify-between items-start mb-12">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-900 mb-2">Şirket Adınız</h2>
-                    <p class="text-slate-500 text-xs">Vergi Dairesi: Zincirlikuyu</p>
-                    <p class="text-slate-500 text-xs">Vergi No: 1234567890</p>
-                    <p class="text-slate-500 text-xs">İstanbul, Türkiye</p>
-                </div>
-                <div class="text-right">
-                    <h1 class="text-4xl font-black text-slate-900 tracking-widest mb-4">FATURA</h1>
-                    <div class="text-xs space-y-1">
-                        <p><span class="font-bold text-slate-700">Fatura No:</span> INV-00123</p>
-                        <p><span class="font-bold text-slate-700">Tarih:</span> {{ invoiceForm.get('date')?.value |
-                            date:'dd/MM/yyyy' }}</p>
+    <div [class.hidden]="activeMobileTab !== 'preview'" class="w-full lg:w-1/2 h-auto lg:h-full bg-slate-100 p-4 sm:p-6 lg:p-8 overflow-y-visible lg:overflow-y-auto flex justify-center items-start lg:block overflow-x-auto">
+        <!-- A4 Paper Wrapper for horizontal scrolling on narrow screens -->
+        <div class="w-full overflow-x-auto flex justify-center pb-8">
+            <!-- A4 Paper -->
+            <div class="w-[210mm] min-w-[210mm] min-h-[297mm] bg-white shadow-2xl p-[10mm] sm:p-[15mm] md:p-[20mm] text-slate-900 text-sm relative border border-slate-200 my-auto">
+                <!-- Header -->
+                <div class="flex justify-between items-start mb-12">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 mb-2">Şirket Adınız</h2>
+                        <p class="text-slate-500 text-xs">Vergi Dairesi: Zincirlikuyu</p>
+                        <p class="text-slate-500 text-xs">Vergi No: 1234567890</p>
+                        <p class="text-slate-500 text-xs">İstanbul, Türkiye</p>
+                    </div>
+                    <div class="text-right">
+                        <h1 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-widest mb-4">FATURA</h1>
+                        <div class="text-xs space-y-1">
+                            <p><span class="font-bold text-slate-700">Fatura No:</span> INV-00123</p>
+                            <p><span class="font-bold text-slate-700">Tarih:</span> {{ invoiceForm.get('date')?.value |
+                                date:'dd/MM/yyyy' }}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Client Info -->
-            <div class="mb-12 border-b border-slate-200 pb-8">
-                <h3 class="font-bold text-slate-900 mb-2">Sayın:</h3>
-                <p class="text-lg font-medium">{{ invoiceForm.get('customerName')?.value || 'Müşteri Adı' }}</p>
-                <p class="text-slate-500">{{ invoiceForm.get('address')?.value || 'Adres bilgisi girilmedi' }}</p>
-                <p class="text-slate-500 mt-1" *ngIf="invoiceForm.get('taxId')?.value">VN: {{
-                    invoiceForm.get('taxId')?.value }}</p>
-            </div>
+                <!-- Client Info -->
+                <div class="mb-12 border-b border-slate-200 pb-8">
+                    <h3 class="font-bold text-slate-900 mb-2">Sayın:</h3>
+                    <p class="text-lg font-medium">{{ invoiceForm.get('customerName')?.value || 'Müşteri Adı' }}</p>
+                    <p class="text-slate-500">{{ invoiceForm.get('address')?.value || 'Adres bilgisi girilmedi' }}</p>
+                    <p class="text-slate-500 mt-1" *ngIf="invoiceForm.get('taxId')?.value">VN: {{
+                        invoiceForm.get('taxId')?.value }}</p>
+                </div>
 
-            <!-- Items Table -->
-            <table class="w-full mb-8">
-                <thead>
-                    <tr class="border-b-2 border-slate-900 text-xs uppercase tracking-wider">
-                        <th class="text-left py-3">Açıklama</th>
-                        <th class="text-right py-3 w-20">Miktar</th>
-                        <th class="text-right py-3 w-28">Birim Fiyat</th>
-                        <th class="text-right py-3 w-20">İnd. %</th>
-                        <th class="text-right py-3 w-28">Toplam</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                    <tr *ngFor="let item of items.controls">
-                        <td class="py-4">{{ item.get('description')?.value }}</td>
-                        <td class="text-right py-4">{{ item.get('quantity')?.value }}</td>
-                        <td class="text-right py-4">{{ item.get('unitPrice')?.value |
-                            currency:'TRY':'symbol-narrow':'1.2-2' }}</td>
-                        <td class="text-right py-4">{{ item.get('discount')?.value }}%</td>
-                        <td class="text-right py-4 font-medium">{{ (item.get('quantity')?.value *
-                            item.get('unitPrice')?.value * (1 - (item.get('discount')?.value || 0) / 100)) |
-                            currency:'TRY':'symbol-narrow':'1.2-2' }}</td>
-                    </tr>
-                </tbody>
-            </table>
+                <!-- Items Table -->
+                <table class="w-full mb-8">
+                    <thead>
+                        <tr class="border-b-2 border-slate-900 text-xs uppercase tracking-wider">
+                            <th class="text-left py-3">Açıklama</th>
+                            <th class="text-right py-3 w-20">Miktar</th>
+                            <th class="text-right py-3 w-28">Birim Fiyat</th>
+                            <th class="text-right py-3 w-20">İnd. %</th>
+                            <th class="text-right py-3 w-28">Toplam</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        <tr *ngFor="let item of items.controls">
+                            <td class="py-4">{{ item.get('description')?.value }}</td>
+                            <td class="text-right py-4">{{ item.get('quantity')?.value }}</td>
+                            <td class="text-right py-4">{{ item.get('unitPrice')?.value |
+                                currency:'TRY':'symbol-narrow':'1.2-2' }}</td>
+                            <td class="text-right py-4">{{ item.get('discount')?.value }}%</td>
+                            <td class="text-right py-4 font-medium">{{ (item.get('quantity')?.value *
+                                item.get('unitPrice')?.value * (1 - (item.get('discount')?.value || 0) / 100)) |
+                                currency:'TRY':'symbol-narrow':'1.2-2' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
 
-            <!-- Totals -->
-            <div class="flex justify-end">
-                <div class="w-72 space-y-3">
-                    <div class="flex justify-between text-slate-600">
-                        <span>Ara Toplam:</span>
-                        <span>{{ calculateSubtotal() | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
-                    </div>
+                <!-- Totals -->
+                <div class="flex justify-end">
+                    <div class="w-72 space-y-3">
+                        <div class="flex justify-between text-slate-600">
+                            <span>Ara Toplam:</span>
+                            <span>{{ calculateSubtotal() | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+                        </div>
 
-                    <div *ngIf="calculateDiscount() > 0" class="flex justify-between text-green-600">
-                        <span>Toplam İndirim:</span>
-                        <span>-{{ calculateDiscount() | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
-                    </div>
+                        <div *ngIf="calculateDiscount() > 0" class="flex justify-between text-green-600">
+                            <span>Toplam İndirim:</span>
+                            <span>-{{ calculateDiscount() | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+                        </div>
 
-                    <div *ngIf="calculateDiscount() > 0" class="flex justify-between text-slate-600 font-medium">
-                        <span>Net Ara Toplam:</span>
-                        <span>{{ calculateNetSubtotal() | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
-                    </div>
+                        <div *ngIf="calculateDiscount() > 0" class="flex justify-between text-slate-600 font-medium">
+                            <span>Net Ara Toplam:</span>
+                            <span>{{ calculateNetSubtotal() | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+                        </div>
 
-                    <div class="flex justify-between text-slate-600">
-                        <span>{{ taxLabel }} (%{{ taxRate }}):</span>
-                        <span>{{ calculateTax() | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
-                    </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>{{ taxLabel }} (%{{ taxRate }}):</span>
+                            <span>{{ calculateTax() | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+                        </div>
 
-                    <div *ngFor="let tax of additionalTaxes.controls" class="flex justify-between text-slate-600">
-                        <span>{{ tax.get('name')?.value }} (%{{ tax.get('rate')?.value }}):</span>
-                        <span>{{ (calculateNetSubtotal() * (tax.get('rate')?.value || 0) / 100) |
-                            currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
-                    </div>
+                        <div *ngFor="let tax of additionalTaxes.controls" class="flex justify-between text-slate-600">
+                            <span>{{ tax.get('name')?.value }} (%{{ tax.get('rate')?.value }}):</span>
+                            <span>{{ (calculateNetSubtotal() * (tax.get('rate')?.value || 0) / 100) |
+                                currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+                        </div>
 
-                    <div class="flex justify-between text-lg font-bold text-slate-900 border-t border-slate-900 pt-3">
-                        <span>Genel Toplam:</span>
-                        <span>{{ calculateTotal() | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+                        <div class="flex justify-between text-lg font-bold text-slate-900 border-t border-slate-900 pt-3">
+                            <span>Genel Toplam:</span>
+                            <span>{{ calculateTotal() | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Footer Note -->
-            <div class="absolute bottom-[20mm] left-[20mm] right-[20mm] text-center text-xs text-slate-400">
-                Ödemeleriniz için teşekkür ederiz. Sorularınız için bizimle iletişime geçebilirsiniz.
+                <!-- Footer Note -->
+                <div class="absolute bottom-[20mm] left-[20mm] right-[20mm] text-center text-xs text-slate-400">
+                    Ödemeleriniz için teşekkür ederiz. Sorularınız için bizimle iletişime geçebilirsiniz.
+                </div>
             </div>
         </div>
     </div>
-</div>
+</div>

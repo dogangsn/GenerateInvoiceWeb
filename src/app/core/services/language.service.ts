@@ -23,6 +23,7 @@ const translations: Record<Language, Record<string, string>> = {
         'sidebar.createInvoice': 'Fatura Oluştur',
         'sidebar.customers': 'Müşteriler',
         'sidebar.reports': 'Raporlar',
+        'sidebar.pricing': 'Paketler & Planlar',
         'sidebar.settings': 'Ayarlar',
 
         // Dashboard
@@ -107,6 +108,7 @@ const translations: Record<Language, Record<string, string>> = {
         'sidebar.createInvoice': 'Create Invoice',
         'sidebar.customers': 'Customers',
         'sidebar.reports': 'Reports',
+        'sidebar.pricing': 'Plans & Pricing',
         'sidebar.settings': 'Settings',
 
         // Dashboard

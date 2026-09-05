@@ -1,7 +1,10 @@
 import { Component, OnInit, inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { CustomerService } from '../../core/services/customer.service';
+import { AuthService } from '../../core/services/auth.service';
+import { UserService } from '../../core/services/user.service';
 import { LanguageService } from '../../core/services/language.service';
 import { Customer, CustomerFormData } from '../../core/models/customer.model';
 
@@ -14,6 +17,9 @@ import { Customer, CustomerFormData } from '../../core/models/customer.model';
 })
 export class CustomerListComponent implements OnInit {
     private customerService = inject(CustomerService);
+    private authService = inject(AuthService);
+    private userService = inject(UserService);
+    private router = inject(Router);
     private platformId = inject(PLATFORM_ID);
     lang = inject(LanguageService);
 
@@ -146,7 +152,19 @@ export class CustomerListComponent implements OnInit {
     }
 
     // Modal methods
-    openAddModal(): void {
+    async openAddModal(): Promise<void> {
+        const currentUser = this.authService.currentUser;
+        if (currentUser) {
+            const profile = await this.userService.getUserProfile(currentUser.uid);
+            if (profile && (profile.plan === 'free' || !profile.plan)) {
+                if (this.customers.length >= (profile.customerLimit || 5)) {
+                    alert('⚠️ Ücretsiz Plan müşteri limitine ulaştınız! (Maksimum 5 Müşteri).\n\nSınırsız müşteri eklemek için lütfen Pro Plana yükseltin.');
+                    this.router.navigate(['/pricing']);
+                    return;
+                }
+            }
+        }
+
         this.formData = this.getEmptyForm();
         this.isEditing = false;
         this.editingCustomerId = null;
