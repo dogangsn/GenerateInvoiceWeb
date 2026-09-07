@@ -3,10 +3,13 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CustomerService } from '../../core/services/customer.service';
+import { InvoiceService } from '../../core/services/invoice.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UserService } from '../../core/services/user.service';
 import { LanguageService } from '../../core/services/language.service';
-import { Customer, CustomerFormData } from '../../core/models/customer.model';
+import { AlertService } from '../../core/services/alert.service';
+import { Customer, CustomerFormData, ReconciliationStatus } from '../../core/models/customer.model';
+import { Invoice } from '../../core/models/invoice.model';
 
 @Component({
     selector: 'app-customer-list',
@@ -17,34 +20,52 @@ import { Customer, CustomerFormData } from '../../core/models/customer.model';
 })
 export class CustomerListComponent implements OnInit {
     private customerService = inject(CustomerService);
+    private invoiceService = inject(InvoiceService);
     private authService = inject(AuthService);
     private userService = inject(UserService);
+    private alertService = inject(AlertService);
     private router = inject(Router);
     private platformId = inject(PLATFORM_ID);
     lang = inject(LanguageService);
 
     customers: Customer[] = [];
     filteredCustomers: Customer[] = [];
+    invoices: Invoice[] = [];
     selectedIds: Set<string> = new Set();
     searchTerm = '';
+    riskFilter: 'all' | 'low' | 'medium' | 'high' = 'all';
     isLoading = false;
 
     // Pagination
     currentPage = 1;
     pageSize = 8;
 
-    // Modal state
+    // Modal state (Add / Edit)
     showModal = false;
     isEditing = false;
     editingCustomerId: string | null = null;
     isSaving = false;
 
+    // Cari Hesap Ekstresi (Statement Modal)
+    showStatementModal = false;
+    selectedCustomerForStatement: Customer | null = null;
+    statementInvoices: Invoice[] = [];
+
+    // Hızlı Mutabakat Modalı (Reconciliation Modal)
+    showReconciliationModal = false;
+    selectedCustomerForReconciliation: Customer | null = null;
+    reconciliationPeriod = '2026-08';
+    reconciliationStatus: ReconciliationStatus = 'pending';
+    reconciliationNotes = '';
+    isSavingReconciliation = false;
+
+    // Risk Analizi Modalı
+    showRiskModal = false;
+    selectedCustomerForRisk: Customer | null = null;
+    selectedCustomerRiskData: { score: number; level: 'low' | 'medium' | 'high'; reason: string } | null = null;
+
     // Form data
     formData: CustomerFormData = this.getEmptyForm();
-
-    // Delete confirmation
-    showDeleteConfirm = false;
-    deletingCustomerId: string | null = null;
 
     countries = [
         'Türkiye', 'Almanya', 'Fransa', 'Birleşik Krallık', 'İspanya',
@@ -53,8 +74,18 @@ export class CustomerListComponent implements OnInit {
 
     ngOnInit(): void {
         if (isPlatformBrowser(this.platformId)) {
+            this.loadInvoices();
             this.loadCustomers();
         }
+    }
+
+    private loadInvoices(): void {
+        this.invoiceService.getInvoices().subscribe({
+            next: (data) => {
+                this.invoices = data;
+            },
+            error: (err) => console.error('Faturalar yüklenirken hata:', err)
+        });
     }
 
     private loadCustomers(): void {
@@ -66,24 +97,140 @@ export class CustomerListComponent implements OnInit {
                 this.isLoading = false;
             },
             error: (err) => {
-                console.error('Müşteriler yüklenirken hata:', err);
+                console.error('Cari hesaplar yüklenirken hata:', err);
                 this.isLoading = false;
             }
         });
     }
 
     filterCustomers(): void {
-        if (!this.searchTerm.trim()) {
-            this.filteredCustomers = [...this.customers];
-        } else {
+        let result = [...this.customers];
+
+        if (this.searchTerm.trim()) {
             const term = this.searchTerm.toLowerCase();
-            this.filteredCustomers = this.customers.filter(c =>
+            result = result.filter(c =>
                 c.name.toLowerCase().includes(term) ||
-                c.email.toLowerCase().includes(term) ||
-                c.phone.includes(term)
+                (c.email && c.email.toLowerCase().includes(term)) ||
+                (c.phone && c.phone.includes(term)) ||
+                (c.taxId && c.taxId.includes(term))
             );
         }
+
+        if (this.riskFilter !== 'all') {
+            result = result.filter(c => {
+                const risk = this.getCustomerRisk(c);
+                return risk.level === this.riskFilter;
+            });
+        }
+
+        this.filteredCustomers = result;
         this.currentPage = 1;
+    }
+
+    // Cari Bakiye Hesaplama
+    getCustomerBalance(customer: Customer): number {
+        if (customer.balance !== undefined && customer.balance !== null) {
+            return customer.balance;
+        }
+        // Faturalardan dinamik hesaplama (Ödenmemişler)
+        const customerInvs = this.invoices.filter(i => 
+            (i.customerId === customer.id || i.customerName === customer.name) &&
+            i.status !== 'paid' && i.status !== 'cancelled'
+        );
+        return customerInvs.reduce((sum, inv) => sum + (inv.total || 0), 0);
+    }
+
+    getCustomerTotalInvoiced(customer: Customer): number {
+        const customerInvs = this.invoices.filter(i => 
+            (i.customerId === customer.id || i.customerName === customer.name) &&
+            i.status !== 'cancelled'
+        );
+        return customerInvs.reduce((sum, inv) => sum + (inv.total || 0), 0);
+    }
+
+    getCustomerRisk(customer: Customer): { score: number; level: 'low' | 'medium' | 'high'; reason: string } {
+        const customerInvs = this.invoices.filter(i => i.customerId === customer.id || i.customerName === customer.name);
+        return this.customerService.calculateCustomerRisk(customer, customerInvs);
+    }
+
+    // Cari Hesap Ekstresi
+    openStatementModal(customer: Customer): void {
+        this.selectedCustomerForStatement = customer;
+        this.statementInvoices = this.invoices.filter(i => 
+            (i.customerId === customer.id || i.customerName === customer.name) &&
+            i.status !== 'cancelled'
+        ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        this.showStatementModal = true;
+    }
+
+    closeStatementModal(): void {
+        this.showStatementModal = false;
+        this.selectedCustomerForStatement = null;
+    }
+
+    printStatement(): void {
+        window.print();
+    }
+
+    // Hızlı Mutabakat
+    openReconciliationModal(customer: Customer): void {
+        this.selectedCustomerForReconciliation = customer;
+        this.reconciliationStatus = customer.reconciliationStatus || 'pending';
+        this.reconciliationNotes = customer.reconciliationNotes || '';
+        this.showReconciliationModal = true;
+    }
+
+    closeReconciliationModal(): void {
+        this.showReconciliationModal = false;
+        this.selectedCustomerForReconciliation = null;
+    }
+
+    async saveReconciliation(): Promise<void> {
+        if (!this.selectedCustomerForReconciliation?.id) return;
+
+        this.isSavingReconciliation = true;
+        try {
+            await this.customerService.updateReconciliation(
+                this.selectedCustomerForReconciliation.id,
+                this.reconciliationStatus,
+                this.reconciliationNotes
+            );
+            this.alertService.toast('Mutabakat durumu güncellendi', 'success');
+            this.closeReconciliationModal();
+            this.loadCustomers();
+        } catch (err) {
+            this.alertService.error('Hata', 'Mutabakat kaydedilemedi.');
+        } finally {
+            this.isSavingReconciliation = false;
+        }
+    }
+
+    getReconciliationLetterText(): string {
+        if (!this.selectedCustomerForReconciliation) return '';
+        const c = this.selectedCustomerForReconciliation;
+        const balance = this.getCustomerBalance(c);
+        const dateStr = new Date().toLocaleDateString('tr-TR');
+        return `Sayın ${c.name},\n\nŞirketimiz kayıtlarına göre ${dateStr} tarihi itibarıyla cari hesabınız ₺${balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} bakiyesi vermektedir.\n\nKayıtlarınız ile mutabık olup olmadığınızı bildirmenizi rica ederiz.\n\nOdivon FaturaPro Mutabakat Servisi`;
+    }
+
+    shareViaWhatsApp(): void {
+        const text = encodeURIComponent(this.getReconciliationLetterText());
+        const phone = this.selectedCustomerForReconciliation?.phone ? this.selectedCustomerForReconciliation.phone.replace(/\D/g, '') : '';
+        const url = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+        window.open(url, '_blank');
+    }
+
+    // Risk Analizi Modalı
+    openRiskModal(customer: Customer): void {
+        this.selectedCustomerForRisk = customer;
+        this.selectedCustomerRiskData = this.getCustomerRisk(customer);
+        this.showRiskModal = true;
+    }
+
+    closeRiskModal(): void {
+        this.showRiskModal = false;
+        this.selectedCustomerForRisk = null;
+        this.selectedCustomerRiskData = null;
     }
 
     // Pagination getters
@@ -96,35 +243,14 @@ export class CustomerListComponent implements OnInit {
         return this.filteredCustomers.slice(start, start + this.pageSize);
     }
 
-    setPage(page: number): void {
+    goToPage(page: number): void {
         if (page >= 1 && page <= this.totalPages) {
             this.currentPage = page;
         }
     }
 
-    exportToCsv(): void {
-        if (this.filteredCustomers.length === 0) return;
-        const headers = ['Müşteri Adı / Ünvanı', 'E-posta', 'Telefon', 'Ülke', 'Vergi Dairesi', 'Vergi No'];
-        const rows = this.filteredCustomers.map(c => [
-            `"${c.name}"`,
-            `"${c.email}"`,
-            `"${c.phone}"`,
-            `"${c.country}"`,
-            `"${c.taxOffice || ''}"`,
-            `"${c.taxId || ''}"`
-        ]);
-
-        const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', `musteriler_${new Date().toISOString().split('T')[0]}.csv`);
-        link.click();
-    }
-
     // Selection methods
-    toggleSelection(id: string): void {
+    toggleSelect(id: string): void {
         if (this.selectedIds.has(id)) {
             this.selectedIds.delete(id);
         } else {
@@ -151,20 +277,8 @@ export class CustomerListComponent implements OnInit {
             this.selectedIds.size === this.paginatedCustomers.length;
     }
 
-    // Modal methods
-    async openAddModal(): Promise<void> {
-        const currentUser = this.authService.currentUser;
-        if (currentUser) {
-            const profile = await this.userService.getUserProfile(currentUser.uid);
-            if (profile && (profile.plan === 'free' || !profile.plan)) {
-                if (this.customers.length >= (profile.customerLimit || 5)) {
-                    alert('⚠️ Ücretsiz Plan müşteri limitine ulaştınız! (Maksimum 5 Müşteri).\n\nSınırsız müşteri eklemek için lütfen Pro Plana yükseltin.');
-                    this.router.navigate(['/pricing']);
-                    return;
-                }
-            }
-        }
-
+    // Add / Edit Modal
+    openAddModal(): void {
         this.formData = this.getEmptyForm();
         this.isEditing = false;
         this.editingCustomerId = null;
@@ -180,7 +294,9 @@ export class CustomerListComponent implements OnInit {
             address: customer.address || '',
             taxId: customer.taxId || '',
             taxOffice: customer.taxOffice || '',
-            notes: customer.notes || ''
+            notes: customer.notes || '',
+            creditLimit: customer.creditLimit || 0,
+            balance: customer.balance || 0
         };
         this.isEditing = true;
         this.editingCustomerId = customer.id || null;
@@ -189,63 +305,106 @@ export class CustomerListComponent implements OnInit {
 
     closeModal(): void {
         this.showModal = false;
+        this.isEditing = false;
+        this.editingCustomerId = null;
         this.formData = this.getEmptyForm();
     }
 
     async saveCustomer(): Promise<void> {
-        if (!this.formData.name || !this.formData.email) return;
+        if (!this.formData.name || !this.formData.email) {
+            this.alertService.warning('Eksik Bilgi', 'Lütfen cari unvanını ve e-posta adresini doldurun.');
+            return;
+        }
 
         this.isSaving = true;
         try {
             if (this.isEditing && this.editingCustomerId) {
                 await this.customerService.updateCustomer(this.editingCustomerId, this.formData);
+                this.alertService.toast('Cari hesap güncellendi', 'success');
             } else {
                 await this.customerService.addCustomer(this.formData);
+                this.alertService.toast('Yeni cari hesap oluşturuldu', 'success');
             }
             this.closeModal();
             this.loadCustomers();
-        } catch (error) {
-            console.error('Müşteri kaydedilirken hata:', error);
+        } catch (error: any) {
+            console.error('Cari kaydedilirken hata:', error);
+            this.alertService.error('Hata', 'Cari hesap kaydedilirken bir hata oluştu.');
         } finally {
             this.isSaving = false;
         }
     }
 
-    // Delete methods
-    confirmDelete(id: string): void {
-        this.deletingCustomerId = id;
-        this.showDeleteConfirm = true;
-    }
+    async deleteCustomer(id: string): Promise<void> {
+        const confirmed = await this.alertService.confirm({
+            title: 'Cari Hesabı Sil',
+            text: 'Bu cari hesabı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.',
+            confirmButtonText: 'Evet, Sil',
+            cancelButtonText: 'İptal',
+            isDanger: true
+        });
 
-    cancelDelete(): void {
-        this.showDeleteConfirm = false;
-        this.deletingCustomerId = null;
-    }
-
-    async deleteCustomer(): Promise<void> {
-        if (!this.deletingCustomerId) return;
+        if (!confirmed) return;
 
         try {
-            await this.customerService.deleteCustomer(this.deletingCustomerId);
-            this.selectedIds.delete(this.deletingCustomerId);
+            await this.customerService.deleteCustomer(id);
+            this.alertService.toast('Cari hesap silindi', 'success');
             this.loadCustomers();
         } catch (error) {
-            console.error('Müşteri silinirken hata:', error);
-        } finally {
-            this.cancelDelete();
+            this.alertService.error('Hata', 'Cari hesap silinemedi.');
         }
     }
 
     async deleteSelected(): Promise<void> {
         if (this.selectedIds.size === 0) return;
 
+        const count = this.selectedIds.size;
+        const confirmed = await this.alertService.confirm({
+            title: 'Toplu Silme',
+            text: `Seçilen ${count} cari hesabı silmek istediğinizden emin misiniz?`,
+            confirmButtonText: `Evet, ${count} Cariyi Sil`,
+            cancelButtonText: 'İptal',
+            isDanger: true
+        });
+
+        if (!confirmed) return;
+
         try {
             await this.customerService.deleteCustomers(Array.from(this.selectedIds));
             this.selectedIds.clear();
+            this.alertService.toast(`${count} cari hesap silindi`, 'success');
             this.loadCustomers();
         } catch (error) {
-            console.error('Müşteriler silinirken hata:', error);
+            this.alertService.error('Hata', 'Cari hesaplar silinemedi.');
         }
+    }
+
+    exportToCsv(): void {
+        if (this.customers.length === 0) {
+            this.alertService.warning('Veri Yok', 'Dışa aktarılacak cari hesap bulunamadı.');
+            return;
+        }
+
+        const headers = ['Cari Unvan', 'E-posta', 'Telefon', 'Vergi Dairesi', 'Vergi No', 'Cari Bakiye (TL)', 'Risk Seviyesi', 'Mutabakat Durumu'];
+        const rows = this.customers.map(c => [
+            `"${c.name}"`,
+            `"${c.email}"`,
+            `"${c.phone}"`,
+            `"${c.taxOffice || ''}"`,
+            `"${c.taxId || ''}"`,
+            `"${this.getCustomerBalance(c)}"`,
+            `"${this.getCustomerRisk(c).level.toUpperCase()}"`,
+            `"${c.reconciliationStatus || 'pending'}"`
+        ]);
+
+        const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Cari_Hesaplar_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
     }
 
     private getEmptyForm(): CustomerFormData {
@@ -257,7 +416,9 @@ export class CustomerListComponent implements OnInit {
             address: '',
             taxId: '',
             taxOffice: '',
-            notes: ''
+            notes: '',
+            creditLimit: 50000,
+            balance: 0
         };
     }
 }

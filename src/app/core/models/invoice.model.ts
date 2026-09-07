@@ -5,7 +5,12 @@ export interface InvoiceItem {
     taxRate?: number;
     discount?: number;
     total?: number;
+    taxAmount?: number;
+    totalWithTax?: number;
 }
+
+export type InvoiceApprovalStatus = 'pending_approval' | 'approved' | 'rejected';
+export type InvoiceTemplateId = 'classic' | 'modern' | 'tech' | 'formal';
 
 export interface Invoice {
     id?: string;
@@ -32,6 +37,10 @@ export interface Invoice {
     taxLabel?: string;
     taxRate?: number;
     additionalTaxes?: { name: string; rate: number }[];
+    approvalStatus?: InvoiceApprovalStatus;
+    templateId?: InvoiceTemplateId;
+    approvalNote?: string;
+    approvedAt?: Date | string;
 }
 
 export interface InvoiceFormData {
@@ -52,4 +61,6 @@ export interface InvoiceFormData {
     taxLabel?: string;
     taxRate?: number;
     additionalTaxes?: { name: string; rate: number }[];
+    approvalStatus?: InvoiceApprovalStatus;
+    templateId?: InvoiceTemplateId;
 }

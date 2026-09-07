@@ -169,4 +169,69 @@ export class CustomerService {
         const deletePromises = ids.map(id => this.deleteCustomer(id));
         await Promise.all(deletePromises);
     }
+    /**
+     * Cari mutabakat durumunu günceller
+     */
+    async updateReconciliation(id: string, status: 'agreed' | 'disputed' | 'pending', notes?: string): Promise<void> {
+        if (!isPlatformBrowser(this.platformId) || !this.firestore) return;
+
+        const customerRef = doc(this.firestore, 'customers', id);
+        await updateDoc(customerRef, {
+            reconciliationStatus: status,
+            reconciliationDate: new Date().toISOString(),
+            reconciliationNotes: notes || '',
+            updatedAt: serverTimestamp()
+        });
+    }
+
+    /**
+     * Cari hesap bakiyesini günceller
+     */
+    async updateBalance(id: string, newBalance: number): Promise<void> {
+        if (!isPlatformBrowser(this.platformId) || !this.firestore) return;
+
+        const customerRef = doc(this.firestore, 'customers', id);
+        await updateDoc(customerRef, {
+            balance: newBalance,
+            updatedAt: serverTimestamp()
+        });
+    }
+
+    /**
+     * Müşteri için dinamik finansal risk skoru ve seviyesini hesaplar
+     */
+    calculateCustomerRisk(customer: Customer, customerInvoices: any[]): { score: number; level: 'low' | 'medium' | 'high'; reason: string } {
+        const now = new Date();
+        const activeInvoices = customerInvoices.filter(inv => inv.status !== 'cancelled');
+        const overdueInvoices = activeInvoices.filter(inv => inv.status !== 'paid' && new Date(inv.dueDate || inv.date) < now);
+        const overdueAmount = overdueInvoices.reduce((s, i) => s + (i.total || 0), 0);
+        const totalInvoiced = activeInvoices.reduce((s, i) => s + (i.total || 0), 0);
+
+        let score = 15; // Taban başlangıç skoru (Güvenli)
+        let reason = 'Düzenli ödeme geçmişi, vadesi geçmiş borç bulunmuyor.';
+
+        if (overdueAmount > 0) {
+            const overdueRatio = totalInvoiced > 0 ? (overdueAmount / totalInvoiced) : 1;
+            score += Math.min(60, Math.round(overdueRatio * 70));
+            score += Math.min(25, overdueInvoices.length * 5);
+        }
+
+        if (customer.creditLimit && (customer.balance || 0) > customer.creditLimit) {
+            score += 20;
+            reason = 'Belirlenen kredi limiti aşıldı.';
+        }
+
+        score = Math.min(100, Math.max(0, score));
+
+        let level: 'low' | 'medium' | 'high' = 'low';
+        if (score >= 70) {
+            level = 'high';
+            reason = `Kritik Risk: ₺${overdueAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} vadesi geçmiş alacak mevcut.`;
+        } else if (score >= 40) {
+            level = 'medium';
+            reason = `Orta Risk: ${overdueInvoices.length} adet faturada gecikme yaşanmış.`;
+        }
+
+        return { score, level, reason };
+    }
 }

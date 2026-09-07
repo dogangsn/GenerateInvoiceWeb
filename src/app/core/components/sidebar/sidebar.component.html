@@ -8,7 +8,7 @@
     <div class="flex h-16 items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6">
         <div class="flex items-center gap-2 text-primary">
             <span class="material-symbols-outlined text-3xl">receipt_long</span>
-            <span class="text-xl font-black tracking-tight text-slate-900 dark:text-white">Fatura<span class="text-primary">Pro</span></span>
+            <span class="text-xl font-black tracking-tight text-slate-900 dark:text-white">Odivon <span class="text-primary">FaturaPro</span></span>
         </div>
         <button (click)="closeMobileMenu.emit()" class="md:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg">
             <span class="material-symbols-outlined text-2xl">close</span>
@@ -19,9 +19,17 @@
         <ul class="space-y-1">
             <li *ngFor="let item of menuItems">
                 <a [routerLink]="item.route" (click)="closeMobileMenu.emit()" routerLinkActive="bg-primary/10 text-primary dark:bg-primary/20 dark:text-blue-400 font-bold"
-                    class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white">
-                    <span class="material-symbols-outlined text-[20px]">{{ item.icon }}</span>
-                    {{ lang.t(item.labelKey) }}
+                    [class]="'flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-all ' + 
+                        (item.isAi 
+                            ? 'text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40' 
+                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white')">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-[20px]" [class.text-purple-600]="item.isAi">{{ item.icon }}</span>
+                        <span>{{ lang.t(item.labelKey) }}</span>
+                    </div>
+                    <span *ngIf="item.isAi" class="rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 px-2 py-0.5 text-[10px] font-extrabold uppercase text-white shadow-sm">
+                        AI
+                    </span>
                 </a>
             </li>
         </ul>

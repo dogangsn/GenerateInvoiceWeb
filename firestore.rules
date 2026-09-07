@@ -1,0 +1,54 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isResourceOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isIncomingOwner() {
+      return isAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+
+    // 1. Users / Profiles
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // 2. Invoices (Satış & Proforma Faturalar)
+    match /invoices/{invoiceId} {
+      allow read, delete: if isResourceOwner();
+      allow create: if isIncomingOwner();
+      allow update: if isResourceOwner() && isIncomingOwner();
+    }
+
+    // 3. Expenses (Giderler, Harcamalar ve Fişler)
+    match /expenses/{expenseId} {
+      allow read, delete: if isResourceOwner();
+      allow create: if isIncomingOwner();
+      allow update: if isResourceOwner() && isIncomingOwner();
+    }
+
+    // 4. Customers (Müşteri Rehberi)
+    match /customers/{customerId} {
+      allow read, delete: if isResourceOwner();
+      allow create: if isIncomingOwner();
+      allow update: if isResourceOwner() && isIncomingOwner();
+    }
+
+    // Default deny for all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

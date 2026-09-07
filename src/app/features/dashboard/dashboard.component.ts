@@ -7,6 +7,11 @@ import { LanguageService } from '../../core/services/language.service';
 import { Invoice } from '../../core/models/invoice.model';
 import { Chart, registerables } from 'chart.js';
 
+import { ExpenseService } from '../../core/services/expense.service';
+import { Expense } from '../../core/models/expense.model';
+
+import { AiAdvisorService, FinancialHealthSummary } from '../../core/services/ai-advisor.service';
+
 interface DashboardStats {
     totalInvoices: number;
     pendingInvoices: number;
@@ -17,6 +22,13 @@ interface DashboardStats {
     avgInvoiceValue: number;
     proformaCount: number;
     monthlyGrowth: number;
+    totalExpenses: number;
+    netBalance: number;
+    salesVat: number;
+    expenseVat: number;
+    netVatPayable: number;
+    overdueAmount: number;
+    overdueCount: number;
 }
 
 interface RecentInvoice {
@@ -45,6 +57,8 @@ interface TopCustomer {
 export class DashboardComponent implements OnInit, AfterViewInit {
     private authService = inject(AuthService);
     private invoiceService = inject(InvoiceService);
+    private expenseService = inject(ExpenseService);
+    private aiAdvisorService = inject(AiAdvisorService);
     private platformId = inject(PLATFORM_ID);
     lang = inject(LanguageService);
 
@@ -64,8 +78,17 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         pendingRevenue: 0,
         avgInvoiceValue: 0,
         proformaCount: 0,
-        monthlyGrowth: 0
+        monthlyGrowth: 0,
+        totalExpenses: 0,
+        netBalance: 0,
+        salesVat: 0,
+        expenseVat: 0,
+        netVatPayable: 0,
+        overdueAmount: 0,
+        overdueCount: 0
     };
+
+    recentExpenses: Expense[] = [];
 
     recentInvoices: RecentInvoice[] = [];
     topCustomers: TopCustomer[] = [];
@@ -114,11 +137,44 @@ export class DashboardComponent implements OnInit, AfterViewInit {
                 this.allInvoices = invoices;
                 this.processInvoiceData(invoices);
                 this.updateCharts();
+                this.loadHealthData();
             },
             error: (err) => {
-                console.error('Dashboard verisi yüklenirken hata:', err);
+                console.error('Dashboard fatura verisi yüklenirken hata:', err);
             }
         });
+
+        this.expenseService.getExpenses().subscribe({
+            next: (expenses) => {
+                this.recentExpenses = expenses.slice(0, 5);
+                const expTotal = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+                this.stats = {
+                    ...this.stats,
+                    totalExpenses: expTotal,
+                    netBalance: this.stats.totalBilled - expTotal
+                };
+                this.loadHealthData();
+            },
+            error: (err) => {
+                console.error('Dashboard gider verisi yüklenirken hata:', err);
+            }
+        });
+    }
+
+    private async loadHealthData() {
+        try {
+            const health = await this.aiAdvisorService.calculateFinancialHealth();
+            this.stats = {
+                ...this.stats,
+                salesVat: health.totalSalesVat,
+                expenseVat: health.totalExpenseVat,
+                netVatPayable: health.isVatRefund ? -health.netVatPayable : health.netVatPayable,
+                overdueAmount: health.overdueTotalAmount,
+                overdueCount: health.overdueInvoicesCount
+            };
+        } catch (error) {
+            console.error('Sağlık analizi yüklenemedi:', error);
+        }
     }
 
     private processInvoiceData(invoices: Invoice[]) {
@@ -200,6 +256,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
         const count = invoices.length;
 
         this.stats = {
+            ...this.stats,
             totalInvoices: count,
             pendingInvoices: pendingCount,
             paidInvoices: paidCount,
@@ -208,7 +265,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
             pendingRevenue: pendingRevenueSum,
             avgInvoiceValue: count > 0 ? totalBilledSum / count : 0,
             proformaCount: proformaCnt,
-            monthlyGrowth: Math.round(growth * 10) / 10
+            monthlyGrowth: Math.round(growth * 10) / 10,
+            totalExpenses: this.stats.totalExpenses,
+            netBalance: totalBilledSum - this.stats.totalExpenses
         };
 
         this.statusCounts = {

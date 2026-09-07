@@ -21,12 +21,14 @@ export class SidebarComponent {
     themeService = inject(ThemeService);
 
     menuItems = [
-        { id: 'dashboard', icon: 'dashboard', labelKey: 'sidebar.dashboard', route: '/dashboard' },
-        { id: 'invoices', icon: 'description', labelKey: 'sidebar.invoices', route: '/invoices' },
-        { id: 'customers', icon: 'group', labelKey: 'sidebar.customers', route: '/customers' },
-        { id: 'reports', icon: 'bar_chart', labelKey: 'sidebar.reports', route: '/reports' },
-        { id: 'pricing', icon: 'workspace_premium', labelKey: 'sidebar.pricing', route: '/pricing' },
-        { id: 'settings', icon: 'settings', labelKey: 'sidebar.settings', route: '/settings' },
+        { id: 'dashboard', icon: 'dashboard', labelKey: 'sidebar.dashboard', route: '/dashboard', isAi: false },
+        { id: 'ai-assistant', icon: 'smart_toy', labelKey: 'sidebar.aiAssistant', route: '/ai-assistant', isAi: true },
+        { id: 'invoices', icon: 'description', labelKey: 'sidebar.invoices', route: '/invoices', isAi: false },
+        { id: 'expenses', icon: 'payments', labelKey: 'sidebar.expenses', route: '/expenses', isAi: false },
+        { id: 'customers', icon: 'account_balance_wallet', labelKey: 'sidebar.customers', route: '/customers', isAi: false },
+        { id: 'reports', icon: 'bar_chart', labelKey: 'sidebar.reports', route: '/reports', isAi: false },
+        { id: 'pricing', icon: 'workspace_premium', labelKey: 'sidebar.pricing', route: '/pricing', isAi: false },
+        { id: 'settings', icon: 'settings', labelKey: 'sidebar.settings', route: '/settings', isAi: false },
     ];
 
     async logout() {

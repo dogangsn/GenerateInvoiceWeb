@@ -4,6 +4,7 @@ import { UserService } from '../../core/services/user.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UserProfile } from '../../core/models/user.model';
 import { LanguageService } from '../../core/services/language.service';
+import { AlertService } from '../../core/services/alert.service';
 
 @Component({
     selector: 'app-pricing',
@@ -15,6 +16,7 @@ import { LanguageService } from '../../core/services/language.service';
 export class PricingComponent implements OnInit {
     private userService = inject(UserService);
     private authService = inject(AuthService);
+    private alertService = inject(AlertService);
     lang = inject(LanguageService);
 
     userProfile: UserProfile | null = null;
@@ -103,21 +105,22 @@ export class PricingComponent implements OnInit {
 
         const currentUser = this.authService.currentUser;
         if (!currentUser) {
-            alert('Lütfen önce giriş yapın.');
+            this.alertService.warning('Giriş Yapın', 'Plan değiştirmek için lütfen önce giriş yapın.');
             return;
         }
 
         this.isUpdating = true;
+        this.alertService.loading('Plan güncelleniyor...');
         try {
             await this.userService.updateUserProfile(currentUser.uid, {
                 plan: planId,
                 monthlyInvoiceLimit: planId === 'free' ? 10 : 999999
             });
             this.currentPlan = planId;
-            alert(`Tebrikler! ${planId.toUpperCase()} paketine başarıyla geçiş yaptınız.`);
+            await this.alertService.success('Tebrikler! 🎉', `${planId.toUpperCase()} paketine başarıyla geçiş yaptınız.`);
         } catch (error) {
             console.error('Plan değiştirilirken hata:', error);
-            alert('Plan güncellenirken bir hata oluştu.');
+            this.alertService.error('Hata', 'Plan güncellenirken bir hata oluştu.');
         } finally {
             this.isUpdating = false;
         }

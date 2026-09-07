@@ -13,6 +13,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 import { UserService } from '../../core/services/user.service';
+import { AlertService } from '../../core/services/alert.service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -27,6 +28,7 @@ export class InvoiceListComponent implements OnInit {
     private customerService = inject(CustomerService);
     private authService = inject(AuthService);
     private userService = inject(UserService);
+    private alertService = inject(AlertService);
     private router = inject(Router);
     private platformId = inject(PLATFORM_ID);
     lang = inject(LanguageService);
@@ -40,6 +42,9 @@ export class InvoiceListComponent implements OnInit {
     searchTerm = '';
     statusFilter = 'all';
     typeFilter: 'all' | 'commercial' | 'proforma' = 'all';
+    vadeFilter: 'all' | 'overdue' | 'this_week' = 'all';
+    approvalFilter: 'all' | 'pending_approval' | 'approved' | 'rejected' = 'all';
+    selectedTemplateId: 'classic' | 'modern' | 'tech' | 'formal' = 'classic';
     isLoading = false;
 
     // Pagination
@@ -62,6 +67,7 @@ export class InvoiceListComponent implements OnInit {
     formData: InvoiceFormData = this.getEmptyForm();
 
     // Country & Tax State
+    countryCode = 'TR';
     countryName = 'Türkiye';
     taxLabel = 'KDV';
     taxRate = 20;
@@ -120,12 +126,39 @@ export class InvoiceListComponent implements OnInit {
     filterInvoices(): void {
         let result = [...this.invoices];
 
+        // Belge Türü Filtresi
         if (this.typeFilter !== 'all') {
             result = result.filter(inv => (inv.invoiceType || 'commercial') === this.typeFilter);
         }
 
+        // Ödeme Durumu Filtresi
         if (this.statusFilter !== 'all') {
             result = result.filter(inv => inv.status === this.statusFilter);
+        }
+
+        // Onay Filtresi
+        if (this.approvalFilter !== 'all') {
+            if (this.approvalFilter === 'pending_approval') {
+                result = result.filter(inv => !inv.approvalStatus || inv.approvalStatus === 'pending_approval');
+            } else {
+                result = result.filter(inv => inv.approvalStatus === this.approvalFilter);
+            }
+        }
+
+        // Vade Filtresi
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (this.vadeFilter === 'overdue') {
+            result = result.filter(inv => this.isOverdue(inv));
+        } else if (this.vadeFilter === 'this_week') {
+            const nextWeek = new Date(today);
+            nextWeek.setDate(today.getDate() + 7);
+            result = result.filter(inv => {
+                if (!inv.dueDate || inv.status === 'paid' || inv.status === 'cancelled') return false;
+                const d = new Date(inv.dueDate);
+                return d >= today && d <= nextWeek;
+            });
         }
 
         if (this.searchTerm.trim()) {
@@ -138,6 +171,93 @@ export class InvoiceListComponent implements OnInit {
 
         this.filteredInvoices = result;
         this.currentPage = 1;
+    }
+
+    // Vade Helpers
+    isOverdue(invoice: Invoice): boolean {
+        if (!invoice.dueDate || invoice.status === 'paid' || invoice.status === 'cancelled') return false;
+        const due = new Date(invoice.dueDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return due < today;
+    }
+
+    getDaysOverdue(dueDate: string | Date | undefined): number {
+        if (!dueDate) return 0;
+        const due = new Date(dueDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diffTime = today.getTime() - due.getTime();
+        return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    }
+
+    sendDueReminder(invoice: Invoice): void {
+        const days = this.getDaysOverdue(invoice.dueDate);
+        const message = encodeURIComponent(
+            `Sayın ${invoice.customerName},\n\n` +
+            `${invoice.invoiceNo} numaralı, ₺${(invoice.total || 0).toLocaleString('tr-TR', { minimumFractionDigits: 2 })} tutarındaki faturanızın son ödeme tarihi (${new Date(invoice.dueDate).toLocaleDateString('tr-TR')}) ${days > 0 ? days + ' gün geçmiştir' : 'yaklaşmıştır'}.\n\n` +
+            `Ödemenizi kontrol etmenizi rica eder, iyi çalışmalar dileriz.\nFaturaPro`
+        );
+        window.open(`https://wa.me/?text=${message}`, '_blank');
+        this.alertService.toast('Vade hatırlatma mesajı hazırlandı', 'info');
+    }
+
+    // Onay Mekanizması
+    async approveInvoice(invoice: Invoice): Promise<void> {
+        if (!invoice.id) return;
+        try {
+            await this.invoiceService.updateApprovalStatus(invoice.id, 'approved');
+            invoice.approvalStatus = 'approved';
+            this.alertService.toast(`${invoice.invoiceNo} faturası onaylandı`, 'success');
+            this.loadInvoices();
+        } catch (error: any) {
+            this.alertService.error('Hata', 'Onaylama işlemi başarısız: ' + (error?.message || error));
+        }
+    }
+
+    async rejectInvoice(invoice: Invoice): Promise<void> {
+        if (!invoice.id) return;
+        try {
+            await this.invoiceService.updateApprovalStatus(invoice.id, 'rejected');
+            invoice.approvalStatus = 'rejected';
+            this.alertService.toast(`${invoice.invoiceNo} faturası reddedildi`, 'info');
+            this.loadInvoices();
+        } catch (error: any) {
+            this.alertService.error('Hata', 'Red işlemi başarısız: ' + (error?.message || error));
+        }
+    }
+
+    getApprovalBadge(status?: string): { label: string; color: string; icon: string } {
+        switch (status) {
+            case 'approved':
+                return { label: 'Onaylandı', color: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800', icon: 'check_circle' };
+            case 'rejected':
+                return { label: 'Reddedildi', color: 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800', icon: 'cancel' };
+            default:
+                return { label: 'Onay Bekliyor', color: 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800', icon: 'pending' };
+        }
+    }
+
+    // Şablon Seçimi
+    setTemplate(templateId: 'classic' | 'modern' | 'tech' | 'formal'): void {
+        this.selectedTemplateId = templateId;
+        if (this.previewInvoice) {
+            this.previewInvoice.templateId = templateId;
+        }
+    }
+
+    // Kalem KDV Hesaplamaları
+    calculateLineTax(item: InvoiceItem): number {
+        const gross = item.quantity * item.unitPrice;
+        const net = gross * (1 - ((item.discount || 0) / 100));
+        const rate = item.taxRate !== undefined ? Number(item.taxRate) : this.taxRate;
+        return net * (rate / 100);
+    }
+
+    calculateLineTotal(item: InvoiceItem): number {
+        const net = this.calculateItemTotal(item);
+        const tax = this.calculateLineTax(item);
+        return net + tax;
     }
 
     // Pagination getters
@@ -191,7 +311,7 @@ export class InvoiceListComponent implements OnInit {
             const profile = await this.userService.getUserProfile(currentUser.uid);
             if (profile && (profile.plan === 'free' || !profile.plan)) {
                 if (this.invoices.length >= (profile.monthlyInvoiceLimit || 5)) {
-                    alert('⚠️ Ücretsiz Plan fatura limitine ulaştınız! (Maksimum 5 Fatura).\n\nSınırsız fatura oluşturmak için lütfen Pro Plana yükseltin.');
+                    this.alertService.warning('Plan Limiti', '⚠️ Ücretsiz Plan fatura limitine ulaştınız! (Maksimum 5 Fatura).\n\nSınırsız fatura oluşturmak için lütfen Pro Plana yükseltin.');
                     this.router.navigate(['/pricing']);
                     return;
                 }
@@ -210,24 +330,22 @@ export class InvoiceListComponent implements OnInit {
         this.formData = {
             invoiceNo: invoice.invoiceNo,
             invoiceType: invoice.invoiceType || 'commercial',
-            date: this.formatDateForInput(invoice.date),
-            dueDate: this.formatDateForInput(invoice.dueDate),
-            customerId: invoice.customerId,
+            customerId: invoice.customerId || '',
             customerName: invoice.customerName,
-            customerEmail: invoice.customerEmail || '',
+            customerEmail: invoice.customerEmail,
             customerTaxId: invoice.customerTaxId || '',
             customerAddress: invoice.customerAddress || '',
-            items: invoice.items.map(item => ({ ...item, discount: item.discount || 0 })),
-            notes: invoice.notes || '',
-            status: invoice.status,
+            date: typeof invoice.date === 'string' ? invoice.date : (invoice.date as any)?.toISOString?.().split('T')[0] || new Date().toISOString().split('T')[0],
+            dueDate: typeof invoice.dueDate === 'string' ? invoice.dueDate : (invoice.dueDate as any)?.toISOString?.().split('T')[0] || new Date().toISOString().split('T')[0],
             countryCode: invoice.countryCode || 'TR',
-            additionalTaxes: invoice.additionalTaxes || []
+            taxLabel: invoice.taxLabel || 'KDV',
+            taxRate: invoice.taxRate || 20,
+            items: invoice.items.map(i => ({ ...i })),
+            additionalTaxes: invoice.additionalTaxes ? invoice.additionalTaxes.map(t => ({ ...t })) : [],
+            notes: invoice.notes,
+            status: invoice.status
         };
-
-        this.setCountryDetails(invoice.countryCode || 'TR');
-        if (invoice.taxRate !== undefined) this.taxRate = invoice.taxRate;
-        if (invoice.taxLabel) this.taxLabel = invoice.taxLabel;
-
+        this.setCountryDetails(this.formData.countryCode || 'TR');
         this.isEditing = true;
         this.editingInvoiceId = invoice.id || null;
         this.showModal = true;
@@ -235,15 +353,30 @@ export class InvoiceListComponent implements OnInit {
 
     closeModal(): void {
         this.showModal = false;
+        this.isEditing = false;
+        this.editingInvoiceId = null;
         this.formData = this.getEmptyForm();
     }
 
     async saveInvoice(): Promise<void> {
-        if (!this.formData.customerName || this.formData.items.length === 0) return;
+        if (!this.formData.customerName || !this.formData.date) {
+            this.alertService.warning('Eksik Bilgi', 'Müşteri adı ve tarih zorunludur.');
+            return;
+        }
+
+        if (this.formData.items.length === 0) {
+            this.alertService.warning('Kalem Gerekli', 'En az bir fatura kalemi eklemelisiniz.');
+            return;
+        }
 
         const invoiceData: InvoiceFormData = {
             ...this.formData,
-            countryCode: this.formData.countryCode,
+            items: this.formData.items.map(item => ({
+                ...item,
+                taxAmount: this.calculateLineTax(item),
+                totalWithTax: this.calculateLineTotal(item)
+            })),
+            countryCode: this.countryCode,
             taxLabel: this.taxLabel,
             taxRate: this.taxRate
         };
@@ -252,14 +385,16 @@ export class InvoiceListComponent implements OnInit {
         try {
             if (this.isEditing && this.editingInvoiceId) {
                 await this.invoiceService.updateInvoice(this.editingInvoiceId, invoiceData);
+                this.alertService.toast('Fatura güncellendi', 'success');
             } else {
                 await this.invoiceService.createInvoice(invoiceData);
+                this.alertService.toast('Fatura oluşturuldu', 'success');
             }
             this.closeModal();
             this.loadInvoices();
         } catch (error: any) {
             console.error('Fatura kaydedilirken hata:', error);
-            alert('Fatura kaydedilirken bir hata oluştu: ' + (error?.message || error));
+            this.alertService.error('Hata', 'Fatura kaydedilirken bir hata oluştu: ' + (error?.message || error));
         } finally {
             this.isSaving = false;
         }
@@ -381,6 +516,7 @@ export class InvoiceListComponent implements OnInit {
     // Preview & PDF
     openPreviewModal(invoice: Invoice): void {
         this.previewInvoice = invoice;
+        this.selectedTemplateId = (invoice.templateId as any) || 'classic';
         this.showPreviewModal = true;
     }
 

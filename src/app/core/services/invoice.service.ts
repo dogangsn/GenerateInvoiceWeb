@@ -213,7 +213,28 @@ export class InvoiceService {
     }
 
     /**
-     * Toplamları hesaplar
+     * Fatura onay durumunu günceller (Onaylandı / Reddedildi / Onay Bekliyor)
+     */
+    async updateApprovalStatus(id: string, approvalStatus: 'pending_approval' | 'approved' | 'rejected', note?: string): Promise<void> {
+        if (!isPlatformBrowser(this.platformId) || !this.firestore) return;
+
+        const invoiceRef = doc(this.firestore, 'invoices', id);
+        const updatePayload: any = {
+            approvalStatus,
+            updatedAt: serverTimestamp()
+        };
+        if (approvalStatus === 'approved') {
+            updatePayload.approvedAt = serverTimestamp();
+        }
+        if (note) {
+            updatePayload.approvalNote = note;
+        }
+
+        await updateDoc(invoiceRef, updatePayload);
+    }
+
+    /**
+     * Toplamları hesaplar ve her kaleme satır KDV ve toplamını yazar
      */
     private calculateTotals(data: InvoiceFormData): { subtotal: number; taxTotal: number; total: number } {
         let subtotal = 0;
@@ -232,7 +253,12 @@ export class InvoiceService {
             totalDiscount += discount;
 
             const itemTaxRate = item.taxRate !== undefined ? item.taxRate : (data.taxRate !== undefined ? data.taxRate : 20);
-            mainTaxTotal += net * (itemTaxRate / 100);
+            const lineTax = net * (itemTaxRate / 100);
+            item.taxAmount = lineTax;
+            item.total = net;
+            item.totalWithTax = net + lineTax;
+
+            mainTaxTotal += lineTax;
         });
 
         const netSubtotal = subtotal - totalDiscount;

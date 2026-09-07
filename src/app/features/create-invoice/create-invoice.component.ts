@@ -9,6 +9,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { UserService } from '../../core/services/user.service';
 import { InvoiceFormData } from '../../core/models/invoice.model';
 import { LanguageService } from '../../core/services/language.service';
+import { AiScannerService, ScannedDocumentResult } from '../../core/services/ai-scanner.service';
+import { AlertService } from '../../core/services/alert.service';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
@@ -25,6 +27,8 @@ export class CreateInvoiceComponent implements OnInit {
     private invoiceService = inject(InvoiceService);
     private authService = inject(AuthService);
     private userService = inject(UserService);
+    private aiScannerService = inject(AiScannerService);
+    private alertService = inject(AlertService);
     lang = inject(LanguageService);
 
     invoiceForm: FormGroup;
@@ -35,6 +39,13 @@ export class CreateInvoiceComponent implements OnInit {
     availableTaxRates: number[] = [20, 10, 1, 0];
     isSaving: boolean = false;
     activeMobileTab: 'form' | 'preview' = 'form';
+
+    // AI Scanner states
+    showScannerModal: boolean = false;
+    isScanning: boolean = false;
+    scannedResult: ScannedDocumentResult | null = null;
+    scannerPreviewUrl: string | null = null;
+    scannerError: string | null = null;
 
 
     constructor() {
@@ -174,6 +185,28 @@ export class CreateInvoiceComponent implements OnInit {
         }, 0);
     }
 
+    // Per-item live tax calculations
+    calculateLineTax(index: number): number {
+        const item = this.items.at(index);
+        if (!item) return 0;
+        const qty = item.get('quantity')?.value || 0;
+        const price = item.get('unitPrice')?.value || 0;
+        const discount = item.get('discount')?.value || 0;
+        const rate = item.get('taxRate')?.value !== undefined ? Number(item.get('taxRate')?.value) : this.taxRate;
+        const net = (qty * price) * (1 - (discount / 100));
+        return net * (rate / 100);
+    }
+
+    calculateLineTotal(index: number): number {
+        const item = this.items.at(index);
+        if (!item) return 0;
+        const qty = item.get('quantity')?.value || 0;
+        const price = item.get('unitPrice')?.value || 0;
+        const discount = item.get('discount')?.value || 0;
+        const net = (qty * price) * (1 - (discount / 100));
+        return net + this.calculateLineTax(index);
+    }
+
     calculateTotal(): number {
         return this.calculateNetSubtotal() + this.calculateTax() + this.calculateAdditionalTaxTotal();
     }
@@ -184,7 +217,7 @@ export class CreateInvoiceComponent implements OnInit {
 
     async saveInvoice() {
         if (this.invoiceForm.invalid) {
-            alert('Lütfen tüm zorunlu alanları doldurun.');
+            this.alertService.warning('Eksik Bilgi', 'Lütfen tüm zorunlu alanları doldurun.');
             return;
         }
 
@@ -195,7 +228,7 @@ export class CreateInvoiceComponent implements OnInit {
             if (profile && (profile.plan === 'free' || !profile.plan)) {
                 const existingInvoices = await firstValueFrom(this.invoiceService.getInvoices());
                 if (existingInvoices.length >= (profile.monthlyInvoiceLimit || 5)) {
-                    alert('⚠️ Ücretsiz Plan limitine ulaştınız! (Maksimum 5 Fatura).\n\nSınırsız fatura oluşturmak için lütfen Pro Plana yükseltin.');
+                    this.alertService.warning('Plan Limiti', '⚠️ Ücretsiz Plan limitine ulaştınız! (Maksimum 5 Fatura).\n\nSınırsız fatura oluşturmak için lütfen Pro Plana yükseltin.');
                     this.router.navigate(['/pricing']);
                     return;
                 }
@@ -203,6 +236,7 @@ export class CreateInvoiceComponent implements OnInit {
         }
 
         this.isSaving = true;
+        this.alertService.loading('Fatura kaydediliyor...');
         try {
             const val = this.invoiceForm.value;
             const invoiceData: InvoiceFormData = {
@@ -214,23 +248,131 @@ export class CreateInvoiceComponent implements OnInit {
                 customerEmail: val.customerEmail || '',
                 customerTaxId: val.customerTaxId || val.taxId || '',
                 customerAddress: val.customerAddress || val.address || '',
-                items: val.items.map((it: any) => ({ ...it, taxRate: Number(it.taxRate !== undefined ? it.taxRate : this.taxRate) })),
+                items: val.items.map((it: any, idx: number) => ({
+                    ...it,
+                    taxRate: Number(it.taxRate !== undefined ? it.taxRate : this.taxRate),
+                    taxAmount: this.calculateLineTax(idx),
+                    totalWithTax: this.calculateLineTotal(idx)
+                })),
                 additionalTaxes: val.additionalTaxes || [],
                 countryCode: this.countryCode,
                 taxLabel: this.taxLabel,
                 taxRate: this.taxRate,
                 notes: '',
-                status: val.invoiceType === 'proforma' ? 'draft' : 'sent'
+                status: val.invoiceType === 'proforma' ? 'draft' : 'sent',
+                approvalStatus: 'approved'
             };
 
             await this.invoiceService.createInvoice(invoiceData);
-            alert((val.invoiceType === 'proforma' ? 'Proforma Fatura' : 'Satış Faturası') + ' başarıyla kaydedildi!');
+            await this.alertService.success('Başarılı', (val.invoiceType === 'proforma' ? 'Proforma Fatura' : 'Satış Faturası') + ' başarıyla kaydedildi!');
             this.router.navigate(['/invoices']);
         } catch (error) {
             console.error('Fatura kaydedilirken hata:', error);
-            alert('Fatura oluşturulurken bir hata oluştu.');
+            this.alertService.error('Hata', 'Fatura oluşturulurken bir hata oluştu.');
         } finally {
             this.isSaving = false;
         }
+    }
+
+    // AI Scanner Integration
+    openScannerModal(): void {
+        this.scannedResult = null;
+        this.scannerPreviewUrl = null;
+        this.scannerError = null;
+        this.isScanning = false;
+        this.showScannerModal = true;
+    }
+
+    closeScannerModal(): void {
+        this.showScannerModal = false;
+        this.scannedResult = null;
+        this.scannerPreviewUrl = null;
+        this.scannerError = null;
+    }
+
+    async onScannerFileSelected(event: Event): Promise<void> {
+        const input = event.target as HTMLInputElement;
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            await this.processScannerFile(file);
+        }
+    }
+
+    onScannerDrop(event: DragEvent): void {
+        event.preventDefault();
+        if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+            const file = event.dataTransfer.files[0];
+            this.processScannerFile(file);
+        }
+    }
+
+    private async processScannerFile(file: File): Promise<void> {
+        try {
+            this.isScanning = true;
+            this.scannerError = null;
+            const base64 = await this.aiScannerService.fileToBase64(file);
+            this.scannerPreviewUrl = base64;
+
+            const result = await this.aiScannerService.scanReceiptOrInvoice(file);
+            this.scannedResult = result;
+        } catch (err: any) {
+            console.error('AI Invoice scanning failed:', err);
+            this.scannerError = err.message || 'Belge taranırken bir hata oluştu.';
+        } finally {
+            this.isScanning = false;
+        }
+    }
+
+    applyScannedDataToInvoice(): void {
+        if (!this.scannedResult) return;
+
+        // Customer / Merchant
+        if (this.scannedResult.merchantName) {
+            this.invoiceForm.patchValue({ customerName: this.scannedResult.merchantName });
+        }
+
+        // Date
+        if (this.scannedResult.date) {
+            this.invoiceForm.patchValue({ date: this.scannedResult.date });
+        }
+
+        // Tax Rate
+        if (this.scannedResult.taxRate !== undefined && this.availableTaxRates.includes(this.scannedResult.taxRate)) {
+            this.taxRate = this.scannedResult.taxRate;
+        }
+
+        // Items
+        if (this.scannedResult.items && this.scannedResult.items.length > 0) {
+            // Clear current items
+            while (this.items.length !== 0) {
+                this.items.removeAt(0);
+            }
+
+            for (const item of this.scannedResult.items) {
+                const itemForm = this.fb.group({
+                    description: [item.description || 'Hizmet / Ürün Kalemi', Validators.required],
+                    quantity: [item.quantity || 1, [Validators.required, Validators.min(1)]],
+                    unitPrice: [item.unitPrice || item.totalPrice || 0, [Validators.required, Validators.min(0)]],
+                    taxRate: [item.taxRate !== undefined ? item.taxRate : this.taxRate, [Validators.required, Validators.min(0)]],
+                    discount: [0, [Validators.min(0), Validators.max(100)]]
+                });
+                this.items.push(itemForm);
+            }
+        } else if (this.scannedResult.totalAmount && this.scannedResult.totalAmount > 0) {
+            // Single fallback item with the total amount
+            while (this.items.length !== 0) {
+                this.items.removeAt(0);
+            }
+            const singleItem = this.fb.group({
+                description: ['Hizmet / Ürün Bedeli', Validators.required],
+                quantity: [1, [Validators.required, Validators.min(1)]],
+                unitPrice: [this.scannedResult.totalAmount, [Validators.required, Validators.min(0)]],
+                taxRate: [this.scannedResult.taxRate || this.taxRate, [Validators.required, Validators.min(0)]],
+                discount: [0, [Validators.min(0), Validators.max(100)]]
+            });
+            this.items.push(singleItem);
+        }
+
+        this.closeScannerModal();
     }
 }
