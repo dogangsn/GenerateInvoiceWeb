@@ -24,6 +24,8 @@ export interface Expense {
     amount: number;
     taxRate: number;
     taxAmount: number;
+    isTaxInclusive?: boolean;
+    subtotal?: number;
     currency?: string;
     paymentMethod: PaymentMethod;
     receiptImage?: string; // Base64 data URL or storage URL
@@ -45,6 +47,8 @@ export interface ExpenseFormData {
     amount: number;
     taxRate: number;
     taxAmount?: number;
+    isTaxInclusive?: boolean;
+    subtotal?: number;
     currency?: string;
     paymentMethod: PaymentMethod;
     receiptImage?: string;

@@ -51,6 +51,8 @@ export class ExpensesComponent implements OnInit, OnDestroy {
         amount: [0, [Validators.required, Validators.min(0.01)]],
         taxAmount: [0, [Validators.min(0)]],
         taxRate: [20],
+        isTaxInclusive: [true], // Varsayılan: KDV Dahil
+        subtotal: [0],
         currency: ['TRY'],
         date: [new Date().toISOString().split('T')[0], [Validators.required]],
         category: ['office' as ExpenseCategory, [Validators.required]],
@@ -134,6 +136,71 @@ export class ExpensesComponent implements OnInit, OnDestroy {
         return this.lang.lang === 'tr' ? pm.labelTr : pm.labelEn;
     }
 
+    // KDV Dahil / Hariç Hesaplama Metotları
+    setTaxInclusive(isInclusive: boolean): void {
+        this.expenseForm.patchValue({ isTaxInclusive: isInclusive });
+        this.calculateTax();
+    }
+
+    onAmountChange(): void {
+        this.calculateTax();
+    }
+
+    onTaxRateChange(): void {
+        this.calculateTax();
+    }
+
+    calculateTax(): void {
+        const inputAmount = Number(this.expenseForm.get('amount')?.value) || 0;
+        const taxRate = Number(this.expenseForm.get('taxRate')?.value) || 0;
+        const isInclusive = this.expenseForm.get('isTaxInclusive')?.value !== false;
+
+        let subtotal = 0;
+        let taxAmount = 0;
+
+        if (taxRate === 0) {
+            subtotal = inputAmount;
+            taxAmount = 0;
+        } else if (isInclusive) {
+            // KDV Dahil: Girilen tutar Brüt Toplamdır
+            subtotal = Math.round((inputAmount / (1 + taxRate / 100)) * 100) / 100;
+            taxAmount = Math.round((inputAmount - subtotal) * 100) / 100;
+        } else {
+            // KDV Hariç: Girilen tutar Net Matrahtır
+            subtotal = inputAmount;
+            taxAmount = Math.round((inputAmount * (taxRate / 100)) * 100) / 100;
+        }
+
+        this.expenseForm.patchValue({
+            subtotal: subtotal,
+            taxAmount: taxAmount
+        }, { emitEvent: false });
+    }
+
+    get isTaxInclusive(): boolean {
+        return this.expenseForm.get('isTaxInclusive')?.value !== false;
+    }
+
+    get computedSubtotal(): number {
+        const subtotal = Number(this.expenseForm.get('subtotal')?.value);
+        if (subtotal > 0) return subtotal;
+        const amount = Number(this.expenseForm.get('amount')?.value) || 0;
+        const tax = Number(this.expenseForm.get('taxAmount')?.value) || 0;
+        return this.isTaxInclusive ? Math.max(0, amount - tax) : amount;
+    }
+
+    get computedTaxAmount(): number {
+        return Number(this.expenseForm.get('taxAmount')?.value) || 0;
+    }
+
+    get computedTotalAmount(): number {
+        const amount = Number(this.expenseForm.get('amount')?.value) || 0;
+        if (this.isTaxInclusive) {
+            return amount;
+        }
+        return amount + this.computedTaxAmount;
+    }
+
     // Modal Actions
     openAddModal(): void {
         this.isEditing = false;
@@ -143,6 +210,8 @@ export class ExpensesComponent implements OnInit, OnDestroy {
             amount: 0,
             taxAmount: 0,
             taxRate: 20,
+            isTaxInclusive: true,
+            subtotal: 0,
             currency: 'TRY',
             date: new Date().toISOString().split('T')[0],
             category: 'office',
@@ -156,11 +225,14 @@ export class ExpensesComponent implements OnInit, OnDestroy {
     openEditModal(expense: Expense): void {
         this.isEditing = true;
         this.editingExpenseId = expense.id || null;
+        const isInclusive = expense.isTaxInclusive !== false;
         this.expenseForm.patchValue({
             merchantName: expense.merchantName || expense.title || expense.supplierName || '',
             amount: expense.amount,
             taxAmount: expense.taxAmount || 0,
             taxRate: expense.taxRate || 20,
+            isTaxInclusive: isInclusive,
+            subtotal: expense.subtotal || (isInclusive ? (expense.amount - (expense.taxAmount || 0)) : expense.amount),
             currency: expense.currency || 'TRY',
             date: typeof expense.date === 'string' ? expense.date : new Date(expense.date).toISOString().split('T')[0],
             category: expense.category,
@@ -168,6 +240,7 @@ export class ExpensesComponent implements OnInit, OnDestroy {
             description: expense.description || expense.notes || '',
             receiptUrl: expense.receiptImage || ''
         });
+        this.calculateTax();
         this.showExpenseModal = true;
     }
 
@@ -184,7 +257,19 @@ export class ExpensesComponent implements OnInit, OnDestroy {
         }
 
         this.isSaving = true;
-        const formData: ExpenseFormData = this.expenseForm.value;
+        const isInclusive = this.expenseForm.get('isTaxInclusive')?.value !== false;
+        const inputAmount = Number(this.expenseForm.get('amount')?.value) || 0;
+        const taxAmount = Number(this.expenseForm.get('taxAmount')?.value) || 0;
+        const subtotal = Number(this.expenseForm.get('subtotal')?.value) || (isInclusive ? (inputAmount - taxAmount) : inputAmount);
+        const finalTotal = isInclusive ? inputAmount : (inputAmount + taxAmount);
+
+        const formData: ExpenseFormData = {
+            ...this.expenseForm.value,
+            amount: finalTotal,
+            subtotal: subtotal,
+            taxAmount: taxAmount,
+            isTaxInclusive: isInclusive
+        };
 
         try {
             if (this.isEditing && this.editingExpenseId) {

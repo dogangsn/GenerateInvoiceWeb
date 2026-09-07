@@ -205,13 +205,15 @@
                         </td>
 
                         <!-- Tax Amount -->
-                        <td class="whitespace-nowrap px-3 py-3.5 text-right text-xs font-medium text-slate-500 dark:text-slate-400">
-                            {{ (item.taxAmount || 0) | number:'1.2-2' }} {{ item.currency || 'TL' }}
+                        <td class="whitespace-nowrap px-3 py-3.5 text-right text-xs font-medium">
+                            <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ (item.taxAmount || 0) | number:'1.2-2' }} {{ item.currency || 'TL' }}</span>
+                            <span class="block text-[10px] text-slate-400 font-normal">%{{ item.taxRate !== undefined ? item.taxRate : 20 }} KDV</span>
                         </td>
 
                         <!-- Total Amount -->
-                        <td class="whitespace-nowrap px-3 py-3.5 text-right font-extrabold text-slate-900 dark:text-white">
-                            {{ item.amount | number:'1.2-2' }} <span class="text-xs font-medium text-slate-400">{{ item.currency || 'TL' }}</span>
+                        <td class="whitespace-nowrap px-3 py-3.5 text-right">
+                            <span class="font-extrabold text-slate-900 dark:text-white text-sm">{{ item.amount | number:'1.2-2' }} <span class="text-xs font-medium text-slate-400">{{ item.currency || 'TL' }}</span></span>
+                            <span class="block text-[10px] text-slate-400">Matrah: {{ (item.subtotal || (item.amount - (item.taxAmount || 0))) | number:'1.2-2' }}</span>
                         </td>
 
                         <!-- Receipt Thumbnail -->
@@ -362,13 +364,32 @@
                 </span>
             </div>
 
+            <!-- KDV Dahil / Hariç Seçimi -->
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                    KDV Hesaplama Yöntemi
+                </label>
+                <div class="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                    <button type="button" (click)="setTaxInclusive(true)"
+                        [class]="'py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ' + (isTaxInclusive ? 'bg-white dark:bg-slate-700 text-primary dark:text-blue-400 shadow-sm font-black' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white')">
+                        <span class="material-symbols-outlined text-[16px]">check_circle</span>
+                        KDV Dahil (Brüt)
+                    </button>
+                    <button type="button" (click)="setTaxInclusive(false)"
+                        [class]="'py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ' + (!isTaxInclusive ? 'bg-white dark:bg-slate-700 text-primary dark:text-blue-400 shadow-sm font-black' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white')">
+                        <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                        KDV Hariç (+KDV Ekle)
+                    </button>
+                </div>
+            </div>
+
             <!-- Amount & Currency -->
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                        {{ lang.t('expenses.amount') }} *
+                        {{ isTaxInclusive ? 'Tutar (KDV Dahil)' : 'Tutar (KDV Hariç Matrah)' }} *
                     </label>
-                    <input type="number" step="0.01" formControlName="amount" placeholder="0.00"
+                    <input type="number" step="0.01" formControlName="amount" (input)="onAmountChange()" placeholder="0.00"
                         class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 px-3.5 py-2.5 text-sm font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:border-primary focus:outline-none min-h-[40px]" />
                 </div>
                 <div>
@@ -391,20 +412,36 @@
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
                         KDV Oranı (%)
                     </label>
-                    <select formControlName="taxRate"
-                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:border-primary focus:outline-none min-h-[40px]">
-                        <option [value]="0">%0</option>
+                    <select formControlName="taxRate" (change)="onTaxRateChange()"
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white focus:border-primary focus:outline-none min-h-[40px]">
+                        <option [value]="0">%0 (KDV Muaf)</option>
                         <option [value]="1">%1</option>
                         <option [value]="10">%10</option>
-                        <option [value]="20">%20</option>
+                        <option [value]="20">%20 (Standart)</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">
-                        {{ lang.t('expenses.tax') }}
+                        {{ lang.t('expenses.tax') }} (Otomatik)
                     </label>
                     <input type="number" step="0.01" formControlName="taxAmount" placeholder="0.00"
-                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:border-primary focus:outline-none min-h-[40px]" />
+                        class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 px-3.5 py-2.5 text-sm font-semibold text-blue-600 dark:text-blue-400 placeholder-slate-400 focus:border-primary focus:outline-none min-h-[40px]" />
+                </div>
+            </div>
+
+            <!-- Canlı KDV ve Toplam Hesap Özeti Kutusu -->
+            <div class="p-3.5 rounded-xl bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-purple-50/50 dark:from-slate-800/90 dark:via-indigo-950/40 dark:to-slate-800/90 border border-blue-200/70 dark:border-indigo-900/60 text-xs space-y-1.5">
+                <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                    <span>Net Matrah (KDV Hariç):</span>
+                    <span class="font-bold text-slate-900 dark:text-white">₺{{ computedSubtotal | number:'1.2-2' }}</span>
+                </div>
+                <div class="flex justify-between text-blue-600 dark:text-blue-400 font-semibold">
+                    <span>Otomatik KDV (%{{ expenseForm.get('taxRate')?.value }}):</span>
+                    <span class="font-bold">₺{{ computedTaxAmount | number:'1.2-2' }}</span>
+                </div>
+                <div class="flex justify-between text-sm font-black pt-1.5 border-t border-blue-200 dark:border-indigo-800 text-slate-900 dark:text-white">
+                    <span>Toplam Gider (KDV Dahil):</span>
+                    <span class="text-primary dark:text-blue-400 text-base">₺{{ computedTotalAmount | number:'1.2-2' }}</span>
                 </div>
             </div>
 

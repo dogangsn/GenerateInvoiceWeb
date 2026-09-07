@@ -49,6 +49,26 @@
             </span>
         </button>
 
+        <!-- Paketler & Planlar (Tema Altında Zarif Abonelik Kartı) -->
+        <a routerLink="/pricing" (click)="closeMobileMenu.emit()"
+            class="group flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-primary/10 to-indigo-500/10 border border-amber-500/20 dark:border-amber-500/30 hover:border-primary/50 transition-all">
+            <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-bold text-slate-800 dark:text-slate-100">
+                            {{ (userProfile?.plan || 'pro') === 'enterprise' ? 'Kurumsal Plan' : ((userProfile?.plan || 'pro') === 'free' ? 'Ücretsiz Plan' : 'Pro Plan') }}
+                        </span>
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 group-hover:text-primary transition-colors">Planı Yönet &bull; Yükselt</p>
+                </div>
+            </div>
+            <span class="material-symbols-outlined text-[16px] text-slate-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all">chevron_right</span>
+        </a>
+
         <!-- Language Selector -->
         <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
             <button (click)="lang.setLanguage('tr')" 
