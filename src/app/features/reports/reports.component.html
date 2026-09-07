@@ -54,62 +54,65 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
                 <span class="material-symbols-outlined">payments</span>
             </div>
             <div>
-                <p class="text-sm text-slate-500 font-medium">Toplam Tahsil Edilen Gelir</p>
-                <p class="text-2xl font-black text-slate-900">₺{{ totalRevenue | number:'1.2-2' }}</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Toplam Tahsil Edilen Gelir</p>
+                <p class="text-2xl font-black text-slate-900 dark:text-white">₺{{ totalRevenue | number:'1.2-2' }}</p>
             </div>
         </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-green-600">
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-emerald-950/60 flex items-center justify-center text-green-600 dark:text-emerald-400">
                 <span class="material-symbols-outlined">receipt</span>
             </div>
             <div>
-                <p class="text-sm text-slate-500 font-medium">Toplam Fatura Sayısı</p>
-                <p class="text-2xl font-black text-slate-900">{{ totalInvoicesCount }}</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Toplam Fatura Sayısı</p>
+                <p class="text-2xl font-black text-slate-900 dark:text-white">{{ totalInvoicesCount }}</p>
             </div>
         </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
+        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
                 <span class="material-symbols-outlined">percent</span>
             </div>
             <div>
-                <p class="text-sm text-slate-500 font-medium">Hesaplanan Toplam Vergi</p>
-                <p class="text-2xl font-black text-slate-900">₺{{ totalTax | number:'1.2-2' }}</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Hesaplanan Toplam Vergi</p>
+                <p class="text-2xl font-black text-slate-900 dark:text-white">₺{{ totalTax | number:'1.2-2' }}</p>
             </div>
         </div>
     </div>
 
     <!-- Chart Section -->
-    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-8">
-        <h2 class="text-lg font-bold text-slate-900 mb-6">Aylık Ödenen Satış Grafiği (₺)</h2>
-        <div class="h-64 flex items-end justify-between gap-2 px-4 pt-8 pb-2">
-            <div *ngFor="let item of monthlySales" class="flex flex-col items-center gap-2 flex-1 group">
-                <div class="relative w-full bg-slate-100 rounded-t-lg overflow-hidden h-full flex items-end group-hover:bg-slate-200 transition-colors">
-                    <div class="w-full bg-primary rounded-t-lg transition-all duration-500 ease-out group-hover:bg-blue-600"
-                        [style.height.%]="item.value">
+    <div class="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm mb-8">
+        <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-6">Aylık Ödenen Satış Grafiği (₺)</h2>
+        <div class="overflow-x-auto pb-2">
+            <div class="h-64 min-w-[500px] flex items-end justify-between gap-2 px-4 pt-8 pb-2">
+                <div *ngFor="let item of monthlySales" class="flex flex-col items-center gap-2 flex-1 group">
+                    <div class="relative w-full bg-slate-100 dark:bg-slate-800 rounded-t-lg overflow-hidden h-full flex items-end group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">
+                        <div class="w-full bg-primary rounded-t-lg transition-all duration-500 ease-out group-hover:bg-blue-600"
+                            [style.height.%]="item.value">
+                        </div>
+                        <!-- Tooltip -->
+                        <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-mono">
+                            ₺{{ item.amount | number:'1.0-0' }}
+                        </div>
                     </div>
-                    <!-- Tooltip -->
-                    <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-mono">
-                        ₺{{ item.amount | number:'1.0-0' }}
-                    </div>
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ item.month }}</span>
                 </div>
-                <span class="text-xs font-medium text-slate-500">{{ item.month }}</span>
             </div>
         </div>
     </div>
 
     <!-- Recent Transactions Table -->
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-6 border-b border-slate-100">
-            <h2 class="text-lg font-bold text-slate-900">Raporlanan Fatura Listesi</h2>
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800">
+            <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Raporlanan Fatura Listesi</h2>
         </div>
-        <div class="overflow-x-auto">
+        <!-- Desktop Table View -->
+        <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                <thead class="bg-slate-50 dark:bg-slate-800/80 text-xs uppercase text-slate-500 dark:text-slate-400">
                     <tr>
                         <th class="px-6 py-4 font-semibold">Fatura No</th>
                         <th class="px-6 py-4 font-semibold">Müşteri</th>
@@ -119,24 +122,47 @@
                         <th class="px-6 py-4 font-semibold text-right">Toplam Tutar</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
-                    <tr *ngFor="let item of filteredInvoices" class="hover:bg-slate-50 transition-colors">
-                        <td class="px-6 py-4 font-semibold text-slate-900">{{ item.invoiceNo }}</td>
-                        <td class="px-6 py-4 text-slate-700 font-medium">{{ item.customerName }}</td>
-                        <td class="px-6 py-4 text-slate-500">{{ item.date | date:'dd.MM.yyyy' }}</td>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tr *ngFor="let item of filteredInvoices" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td class="px-6 py-4 font-semibold text-slate-900 dark:text-white">{{ item.invoiceNo }}</td>
+                        <td class="px-6 py-4 text-slate-700 dark:text-slate-300 font-medium">{{ item.customerName }}</td>
+                        <td class="px-6 py-4 text-slate-500 dark:text-slate-400">{{ item.date | date:'dd.MM.yyyy' }}</td>
                         <td class="px-6 py-4">
                             <span [class]="'px-2.5 py-1 rounded-full text-xs font-bold ' + getStatusClass(item.status)">
                                 {{ getStatusLabel(item.status) }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-right text-slate-600 font-mono">₺{{ (item.taxTotal || 0) | number:'1.2-2' }}</td>
-                        <td class="px-6 py-4 text-right font-bold text-slate-900 font-mono">₺{{ (item.total || 0) | number:'1.2-2' }}</td>
+                        <td class="px-6 py-4 text-right text-slate-600 dark:text-slate-300 font-mono">₺{{ (item.taxTotal || 0) | number:'1.2-2' }}</td>
+                        <td class="px-6 py-4 text-right font-bold text-slate-900 dark:text-white font-mono">₺{{ (item.total || 0) | number:'1.2-2' }}</td>
                     </tr>
                     <tr *ngIf="filteredInvoices.length === 0">
                         <td colspan="6" class="px-6 py-8 text-center text-slate-400">Seçilen kriterlerde fatura kaydı bulunamadı.</td>
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="block md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+            <div *ngFor="let item of filteredInvoices" class="p-4 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 dark:text-white text-sm">{{ item.invoiceNo }}</span>
+                    <span [class]="'px-2.5 py-0.5 rounded-full text-[11px] font-bold ' + getStatusClass(item.status)">
+                        {{ getStatusLabel(item.status) }}
+                    </span>
+                </div>
+                <div class="flex items-center justify-between text-xs">
+                    <span class="font-medium text-slate-700 dark:text-slate-300">{{ item.customerName }}</span>
+                    <span class="font-bold text-slate-900 dark:text-white text-sm">₺{{ (item.total || 0) | number:'1.2-2' }}</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                    <span>Tarih: {{ item.date | date:'dd.MM.yyyy' }}</span>
+                    <span>Vergi: ₺{{ (item.taxTotal || 0) | number:'1.2-2' }}</span>
+                </div>
+            </div>
+            <div *ngIf="filteredInvoices.length === 0" class="p-6 text-center text-slate-400 text-xs">
+                Seçilen kriterlerde fatura kaydı bulunamadı.
+            </div>
         </div>
     </div>
 </div>

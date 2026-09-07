@@ -69,14 +69,15 @@
     </div>
 
     <!-- Table -->
-    <div *ngIf="!isLoading && customers.length > 0" class="flex-1 flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div class="overflow-auto flex-1">
+    <div *ngIf="!isLoading && customers.length > 0" class="flex-1 flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <!-- Desktop Table View -->
+        <div class="hidden md:block overflow-auto flex-1">
             <table class="w-full min-w-[800px] text-left text-sm">
-                <thead class="bg-slate-50 text-xs uppercase text-slate-500 sticky top-0">
+                <thead class="bg-slate-50 dark:bg-slate-800/80 text-xs uppercase text-slate-500 dark:text-slate-400 sticky top-0">
                     <tr>
                         <th class="w-12 px-4 py-4">
                             <input type="checkbox" [checked]="isAllSelected" (change)="toggleSelectAll()"
-                                class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" />
+                                class="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary cursor-pointer" />
                         </th>
                         <th class="px-6 py-4 font-semibold">Müşteri Adı</th>
                         <th class="px-6 py-4 font-semibold">E-Posta</th>
@@ -85,13 +86,13 @@
                         <th class="px-6 py-4 font-semibold text-right">{{ lang.t('common.actions') }}</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     <tr *ngFor="let customer of paginatedCustomers" 
-                        class="group hover:bg-slate-50 transition-colors"
+                        class="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                         [class.bg-primary/5]="isSelected(customer.id!)">
                         <td class="px-4 py-4">
                             <input type="checkbox" [checked]="isSelected(customer.id!)" (change)="toggleSelection(customer.id!)"
-                                class="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer" />
+                                class="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary cursor-pointer" />
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
@@ -99,26 +100,26 @@
                                     {{ customer.name.charAt(0).toUpperCase() }}
                                 </div>
                                 <div>
-                                    <p class="font-semibold text-slate-900">{{ customer.name }}</p>
+                                    <p class="font-semibold text-slate-900 dark:text-white">{{ customer.name }}</p>
                                     <p *ngIf="customer.taxId" class="text-xs text-slate-400">VKN: {{ customer.taxId }}</p>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 text-slate-600">{{ customer.email }}</td>
-                        <td class="px-6 py-4 text-slate-600">{{ customer.phone }}</td>
+                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ customer.email }}</td>
+                        <td class="px-6 py-4 text-slate-600 dark:text-slate-300">{{ customer.phone }}</td>
                         <td class="px-6 py-4">
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-xs font-medium">
                                 {{ customer.country }}
                             </span>
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button (click)="openEditModal(customer)" title="Düzenle"
-                                    class="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
+                                    class="p-2 text-slate-400 hover:text-primary dark:hover:text-blue-400 hover:bg-primary/10 rounded-lg transition-colors">
                                     <span class="material-symbols-outlined text-[20px]">edit</span>
                                 </button>
                                 <button (click)="confirmDelete(customer.id!)" title="Sil"
-                                    class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                    class="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors">
                                     <span class="material-symbols-outlined text-[20px]">delete</span>
                                 </button>
                             </div>
@@ -126,6 +127,46 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Mobile Card List View -->
+        <div class="block md:hidden flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+            <div *ngFor="let customer of paginatedCustomers" class="p-4 space-y-3 bg-white dark:bg-slate-900">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" [checked]="isSelected(customer.id!)" (change)="toggleSelection(customer.id!)"
+                            class="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-primary focus:ring-primary cursor-pointer" />
+                        <div class="w-9 h-9 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-xs shrink-0">
+                            {{ customer.name.charAt(0).toUpperCase() }}
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-900 dark:text-white text-sm">{{ customer.name }}</p>
+                            <p *ngIf="customer.taxId" class="text-[11px] text-slate-400">VKN: {{ customer.taxId }}</p>
+                        </div>
+                    </div>
+                    <span class="inline-flex items-center px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-[11px] font-medium">
+                        {{ customer.country }}
+                    </span>
+                </div>
+                <div class="text-xs space-y-1 text-slate-600 dark:text-slate-400">
+                    <p *ngIf="customer.email" class="flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px] text-slate-400">mail</span>
+                        {{ customer.email }}
+                    </p>
+                    <p *ngIf="customer.phone" class="flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px] text-slate-400">call</span>
+                        {{ customer.phone }}
+                    </p>
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button (click)="openEditModal(customer)" class="px-3 py-1 text-xs font-medium text-primary dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 rounded-lg flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px]">edit</span> Düzenle
+                    </button>
+                    <button (click)="confirmDelete(customer.id!)" class="px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 rounded-lg flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px]">delete</span> Sil
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Pagination Controls -->
@@ -152,69 +193,69 @@
 
 <!-- Add/Edit Modal -->
 <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" (click)="closeModal()"></div>
-    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden animate-scale-in">
-        <div class="flex items-center justify-between p-6 border-b border-slate-100">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" (click)="closeModal()"></div>
+    <div class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden animate-scale-in">
+        <div class="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
             <div>
-                <h2 class="text-xl font-bold text-slate-900">{{ isEditing ? 'Müşteri Düzenle' : 'Yeni Müşteri' }}</h2>
-                <p class="text-sm text-slate-500">{{ isEditing ? 'Müşteri bilgilerini güncelleyin' : 'Yeni müşteri bilgilerini girin' }}</p>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ isEditing ? 'Müşteri Düzenle' : 'Yeni Müşteri' }}</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400">{{ isEditing ? 'Müşteri bilgilerini güncelleyin' : 'Yeni müşteri bilgilerini girin' }}</p>
             </div>
-            <button (click)="closeModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+            <button (click)="closeModal()" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
 
-        <form (ngSubmit)="saveCustomer()" class="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-130px)]">
+        <form (ngSubmit)="saveCustomer()" class="p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-130px)] text-slate-900 dark:text-slate-100">
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1.5">Şirket / Kişi Adı *</label>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Şirket / Kişi Adı *</label>
                 <input type="text" [(ngModel)]="formData.name" name="name" required placeholder="Şirket veya kişi adı"
-                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">E-Posta *</label>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">E-Posta *</label>
                     <input type="email" [(ngModel)]="formData.email" name="email" required placeholder="ornek@sirket.com"
-                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Telefon</label>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Telefon</label>
                     <input type="tel" [(ngModel)]="formData.phone" name="phone" placeholder="+90 555 123 4567"
-                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1.5">Ülke</label>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Ülke</label>
                 <select [(ngModel)]="formData.country" name="country"
-                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-white">
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
                     <option *ngFor="let country of countries" [value]="country">{{ country }}</option>
                 </select>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1.5">Adres</label>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Adres</label>
                 <textarea [(ngModel)]="formData.address" name="address" rows="2" placeholder="Açık adres"
-                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"></textarea>
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"></textarea>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Vergi / TCKN No</label>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Vergi / TCKN No</label>
                     <input type="text" [(ngModel)]="formData.taxId" name="taxId" placeholder="1234567890"
-                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Vergi Dairesi</label>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Vergi Dairesi</label>
                     <input type="text" [(ngModel)]="formData.taxOffice" name="taxOffice" placeholder="Vergi dairesi adı"
-                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" />
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1.5">Notlar</label>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Notlar</label>
                 <textarea [(ngModel)]="formData.notes" name="notes" rows="2" placeholder="Ek notlar..."
-                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"></textarea>
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"></textarea>
             </div>
 
             <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
