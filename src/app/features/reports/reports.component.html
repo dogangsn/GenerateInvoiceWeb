@@ -1,99 +1,144 @@
-<div class="flex h-full flex-col overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-950 transition-colors duration-200">
+<div id="printable-report" class="flex h-full flex-col overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50 dark:bg-slate-950 transition-colors duration-200">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
             <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{{ lang.t('reports.title') }}</h1>
             <p class="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">{{ lang.t('reports.subtitle') }}</p>
         </div>
-        <div class="flex items-center gap-2.5 w-full sm:w-auto">
+        <div class="flex items-center gap-2.5 w-full sm:w-auto no-print">
             <button (click)="printReport()"
-                class="flex-1 sm:flex-none justify-center px-3.5 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all flex items-center gap-2 text-xs sm:text-sm min-h-[40px]">
+                class="flex-1 sm:flex-none justify-center px-3.5 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all flex items-center gap-2 text-xs sm:text-sm min-h-[40px] shadow-sm">
                 <span class="material-symbols-outlined text-[18px] sm:text-[20px]">print</span>
-                Yazdır
+                <span>{{ lang.t('reports.print') }}</span>
             </button>
             <button (click)="exportReportToCsv()"
                 class="flex-1 sm:flex-none justify-center px-4 sm:px-5 py-2 sm:py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-primary/25 flex items-center gap-2 text-xs sm:text-sm min-h-[40px]">
                 <span class="material-symbols-outlined text-[18px] sm:text-[20px]">download</span>
-                {{ lang.t('common.exportCsv') }}
+                <span>{{ lang.t('common.exportCsv') }}</span>
             </button>
         </div>
     </div>
 
-    <!-- Filters Card (Matching Invoices Controls Bar Proportions) -->
-    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
-        <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-3">Rapor Kriterleri</h2>
+    <!-- Category Navigation Tabs (In-page Tabs Structure) -->
+    <div class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-5 no-print border-b border-slate-200 dark:border-slate-800">
+        <button (click)="setTab('sales')"
+            [class]="'px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ' + (activeTab === 'sales' ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800')">
+            <span class="material-symbols-outlined text-lg">trending_up</span>
+            <span>{{ lang.t('reports.tabSales') }}</span>
+        </button>
+        <button (click)="setTab('expenses')"
+            [class]="'px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ' + (activeTab === 'expenses' ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800')">
+            <span class="material-symbols-outlined text-lg">payments</span>
+            <span>{{ lang.t('reports.tabExpenses') }}</span>
+        </button>
+        <button (click)="setTab('tax')"
+            [class]="'px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ' + (activeTab === 'tax' ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800')">
+            <span class="material-symbols-outlined text-lg">percent</span>
+            <span>{{ lang.t('reports.tabTax') }}</span>
+        </button>
+        <button (click)="setTab('customers')"
+            [class]="'px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ' + (activeTab === 'customers' ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800')">
+            <span class="material-symbols-outlined text-lg">group</span>
+            <span>{{ lang.t('reports.tabCustomers') }}</span>
+        </button>
+        <button (click)="setTab('profit_loss')"
+            [class]="'px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 ' + (activeTab === 'profit_loss' ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800')">
+            <span class="material-symbols-outlined text-lg">account_balance_wallet</span>
+            <span>{{ lang.t('reports.tabProfitLoss') }}</span>
+        </button>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm mb-6 no-print">
+        <h2 class="text-sm font-bold text-slate-900 dark:text-white mb-3">{{ lang.t('reports.criteria') }}</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
             <div>
-                <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Başlangıç Tarihi</label>
+                <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ lang.t('reports.startDate') }}</label>
                 <input type="date" [(ngModel)]="startDate" (ngModelChange)="applyFilter()"
                     class="h-10 w-full px-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/20" />
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Bitiş Tarihi</label>
+                <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ lang.t('reports.endDate') }}</label>
                 <input type="date" [(ngModel)]="endDate" (ngModelChange)="applyFilter()"
                     class="h-10 w-full px-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/20" />
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Durum Filtresi</label>
+                <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{{ lang.t('reports.statusFilter') }}</label>
                 <select [(ngModel)]="reportType" (ngModelChange)="applyFilter()"
                     class="h-10 w-full px-3.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white">
-                    <option value="all">Tüm Faturalar</option>
-                    <option value="paid">Sadece Ödenenler</option>
-                    <option value="pending">Sadece Bekleyenler</option>
-                    <option value="overdue">Gecikmiş Faturalar</option>
+                    <option value="all">{{ lang.t('reports.filterAll') }}</option>
+                    <option value="paid">{{ lang.t('reports.filterPaid') }}</option>
+                    <option value="pending">{{ lang.t('reports.filterPending') }}</option>
+                    <option value="overdue">{{ lang.t('reports.filterOverdue') }}</option>
                 </select>
             </div>
             <button (click)="applyFilter()"
                 class="h-10 px-5 bg-slate-900 dark:bg-slate-800 text-white font-semibold rounded-lg hover:bg-slate-800 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 text-xs sm:text-sm">
                 <span class="material-symbols-outlined text-[18px]">filter_alt</span>
-                Raporu Güncelle
+                <span>{{ lang.t('reports.updateReport') }}</span>
             </button>
         </div>
     </div>
 
-    <!-- Stats Cards (Matching Invoices/Expenses Grid) -->
+    <!-- Stats Cards Grid -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-6">
+        <!-- Revenue / Tab 1 Metric -->
         <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center gap-4">
             <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                 <span class="material-symbols-outlined">payments</span>
             </div>
             <div>
-                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">Toplam Tahsil Edilen Gelir</p>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">{{ lang.t('reports.totalRevenue') }}</p>
                 <p class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">₺{{ totalRevenue | number:'1.2-2' }}</p>
             </div>
         </div>
+
+        <!-- Invoices / Expenses Metric -->
         <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center gap-4">
-            <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-emerald-950/60 flex items-center justify-center text-green-600 dark:text-emerald-400 shrink-0">
-                <span class="material-symbols-outlined">receipt</span>
+            <div class="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <span class="material-symbols-outlined">receipt_long</span>
             </div>
             <div>
-                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">Toplam Fatura Sayısı</p>
-                <p class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{{ totalInvoicesCount }}</p>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                    {{ activeTab === 'expenses' ? lang.t('reports.totalExpenses') : lang.t('reports.totalInvoices') }}
+                </p>
+                <p class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                    {{ activeTab === 'expenses' ? ('₺' + (totalExpenses | number:'1.2-2')) : totalInvoicesCount }}
+                </p>
             </div>
         </div>
+
+        <!-- Net Profit or Tax Metric -->
         <div class="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center gap-4">
-            <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
-                <span class="material-symbols-outlined">percent</span>
+            <div [class]="'w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ' + (activeTab === 'profit_loss' ? (netProfit >= 0 ? 'bg-green-100 text-green-600 dark:bg-green-950/60 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-400') : 'bg-purple-100 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400')">
+                <span class="material-symbols-outlined">{{ activeTab === 'profit_loss' ? 'account_balance' : 'percent' }}</span>
             </div>
             <div>
-                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">Hesaplanan Toplam Vergi</p>
-                <p class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">₺{{ totalTax | number:'1.2-2' }}</p>
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                    {{ activeTab === 'profit_loss' ? lang.t('reports.netProfit') : (activeTab === 'tax' ? lang.t('reports.netVat') : lang.t('reports.totalTax')) }}
+                </p>
+                <p class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                    ₺{{ (activeTab === 'profit_loss' ? netProfit : (activeTab === 'tax' ? netVat : totalTax)) | number:'1.2-2' }}
+                </p>
             </div>
         </div>
     </div>
 
-    <!-- Chart Section -->
+    <!-- Dynamic Chart Section -->
     <div class="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
-        <h2 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-4">Aylık Ödenen Satış Grafiği (₺)</h2>
-        <div class="overflow-x-auto pb-2">
+        <h2 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-4">
+            {{ activeTab === 'expenses' ? lang.t('reports.expenseChartTitle') : (activeTab === 'profit_loss' ? lang.t('reports.profitLossChartTitle') : lang.t('reports.salesChartTitle')) }}
+        </h2>
+        
+        <!-- Sales & Expenses Single Bar Chart -->
+        <div *ngIf="activeTab !== 'profit_loss'" class="overflow-x-auto pb-2">
             <div class="h-60 min-w-[500px] flex items-end justify-between gap-2 px-4 pt-8 pb-2">
-                <div *ngFor="let item of monthlySales" class="flex flex-col items-center gap-2 flex-1 group">
+                <div *ngFor="let item of (activeTab === 'expenses' ? monthlyExpensesData : monthlySales)" class="flex flex-col items-center gap-2 flex-1 group">
                     <div class="relative w-full bg-slate-100 dark:bg-slate-800 rounded-t-lg overflow-hidden h-full flex items-end group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">
-                        <div class="w-full bg-primary rounded-t-lg transition-all duration-500 ease-out group-hover:bg-blue-600"
+                        <div [class]="'w-full rounded-t-lg transition-all duration-500 ease-out ' + (activeTab === 'expenses' ? 'bg-amber-500 group-hover:bg-amber-600' : 'bg-primary group-hover:bg-blue-600')"
                             [style.height.%]="item.value">
                         </div>
-                        <!-- Tooltip -->
-                        <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-mono">
+                        <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-mono shadow-md">
                             ₺{{ item.amount | number:'1.0-0' }}
                         </div>
                     </div>
@@ -101,24 +146,115 @@
                 </div>
             </div>
         </div>
+
+        <!-- Profit/Loss Double Bar Chart -->
+        <div *ngIf="activeTab === 'profit_loss'" class="overflow-x-auto pb-2">
+            <div class="h-60 min-w-[500px] flex items-end justify-between gap-2 px-4 pt-8 pb-2">
+                <div *ngFor="let item of monthlyProfitLoss" class="flex flex-col items-center gap-2 flex-1 group">
+                    <div class="relative w-full bg-slate-100 dark:bg-slate-800 rounded-t-lg overflow-hidden h-full flex items-end justify-center gap-1 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors px-1">
+                        <!-- Revenue Bar (Blue) -->
+                        <div class="w-1/2 bg-primary rounded-t transition-all duration-500" [style.height.%]="item.revVal"></div>
+                        <!-- Expense Bar (Amber) -->
+                        <div class="w-1/2 bg-amber-500 rounded-t transition-all duration-500" [style.height.%]="item.expVal"></div>
+
+                        <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[11px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-mono shadow-md">
+                            Gelir: ₺{{ item.revenue | number:'1.0-0' }} | Gider: ₺{{ item.expense | number:'1.0-0' }}
+                        </div>
+                    </div>
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">{{ item.month }}</span>
+                </div>
+            </div>
+            <div class="flex items-center justify-center gap-6 mt-4 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded bg-primary"></span>
+                    <span>Gelir (Tahsil)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded bg-amber-500"></span>
+                    <span>Gider (Harcama)</span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Recent Transactions Table -->
+    <!-- Data Tables Container -->
     <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-1">
-        <div class="p-4 border-b border-slate-100 dark:border-slate-800">
-            <h2 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white">Raporlanan Fatura Listesi</h2>
+        <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <h2 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                {{ activeTab === 'expenses' ? lang.t('reports.recentExpenses') : (activeTab === 'customers' ? lang.t('reports.topCustomers') : lang.t('reports.recentInvoices')) }}
+            </h2>
+            <span class="text-xs font-medium text-slate-400">
+                {{ activeTab === 'expenses' ? (filteredExpenses.length + ' Gider Kaydı') : (activeTab === 'customers' ? (customerBreakdown.length + ' Müşteri') : (filteredInvoices.length + ' Fatura Kaydı')) }}
+            </span>
         </div>
-        <!-- Desktop Table View -->
-        <div class="hidden md:block overflow-x-auto">
+
+        <!-- 1. Customers Breakdown Table -->
+        <div *ngIf="activeTab === 'customers'" class="overflow-x-auto">
             <table class="w-full text-left text-sm">
                 <thead class="bg-slate-50 dark:bg-slate-800 text-xs uppercase text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
                     <tr>
-                        <th class="px-6 py-3.5">Fatura No</th>
-                        <th class="px-6 py-3.5">Müşteri</th>
-                        <th class="px-6 py-3.5">Tarih</th>
-                        <th class="px-6 py-3.5">Durum</th>
-                        <th class="px-6 py-3.5 text-right">Vergi</th>
-                        <th class="px-6 py-3.5 text-right">Toplam Tutar</th>
+                        <th class="px-6 py-3.5">{{ lang.t('reports.customer') }}</th>
+                        <th class="px-6 py-3.5 text-center">{{ lang.t('reports.totalInvoices') }}</th>
+                        <th class="px-6 py-3.5 text-right">{{ lang.t('reports.total') }}</th>
+                        <th class="px-6 py-3.5 text-right">Satış Payı Oranı</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tr *ngFor="let c of customerBreakdown" class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="px-6 py-3.5 font-bold text-slate-900 dark:text-white">{{ c.customerName }}</td>
+                        <td class="px-6 py-3.5 text-center text-slate-700 dark:text-slate-300 font-medium">{{ c.invoiceCount }} Adet</td>
+                        <td class="px-6 py-3.5 text-right font-mono font-bold text-slate-900 dark:text-white">₺{{ c.totalAmount | number:'1.2-2' }}</td>
+                        <td class="px-6 py-3.5 text-right font-mono text-xs">
+                            <span class="px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 font-bold">
+                                %{{ c.percentage }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr *ngIf="customerBreakdown.length === 0">
+                        <td colspan="4" class="px-6 py-8 text-center text-slate-400">{{ lang.t('reports.noDataFound') }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 2. Expenses Table -->
+        <div *ngIf="activeTab === 'expenses'" class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800 text-xs uppercase text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th class="px-6 py-3.5">{{ lang.t('reports.merchant') }}</th>
+                        <th class="px-6 py-3.5">{{ lang.t('reports.category') }}</th>
+                        <th class="px-6 py-3.5">{{ lang.t('reports.date') }}</th>
+                        <th class="px-6 py-3.5 text-right">{{ lang.t('reports.tax') }}</th>
+                        <th class="px-6 py-3.5 text-right">{{ lang.t('reports.total') }}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tr *ngFor="let exp of filteredExpenses" class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="px-6 py-3.5 font-bold text-slate-900 dark:text-white">{{ exp.merchantName || exp.title }}</td>
+                        <td class="px-6 py-3.5 text-slate-700 dark:text-slate-300 font-medium capitalize">{{ exp.category }}</td>
+                        <td class="px-6 py-3.5 text-slate-500 dark:text-slate-400 text-xs">{{ exp.date | date:'dd.MM.yyyy' }}</td>
+                        <td class="px-6 py-3.5 text-right text-slate-600 dark:text-slate-300 font-mono text-xs">₺{{ (exp.taxAmount || 0) | number:'1.2-2' }}</td>
+                        <td class="px-6 py-3.5 text-right font-bold text-amber-600 dark:text-amber-400 font-mono">₺{{ (exp.amount || 0) | number:'1.2-2' }}</td>
+                    </tr>
+                    <tr *ngIf="filteredExpenses.length === 0">
+                        <td colspan="5" class="px-6 py-8 text-center text-slate-400">{{ lang.t('reports.noDataFound') }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 3. Invoices / Tax / Sales Table -->
+        <div *ngIf="activeTab !== 'customers' && activeTab !== 'expenses'" class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 dark:bg-slate-800 text-xs uppercase text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th class="px-6 py-3.5">{{ lang.t('reports.invoiceNo') }}</th>
+                        <th class="px-6 py-3.5">{{ lang.t('reports.customer') }}</th>
+                        <th class="px-6 py-3.5">{{ lang.t('reports.date') }}</th>
+                        <th class="px-6 py-3.5">{{ lang.t('reports.status') }}</th>
+                        <th class="px-6 py-3.5 text-right">{{ lang.t('reports.tax') }}</th>
+                        <th class="px-6 py-3.5 text-right">{{ lang.t('reports.total') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -135,33 +271,10 @@
                         <td class="px-6 py-3.5 text-right font-bold text-slate-900 dark:text-white font-mono">₺{{ (item.total || 0) | number:'1.2-2' }}</td>
                     </tr>
                     <tr *ngIf="filteredInvoices.length === 0">
-                        <td colspan="6" class="px-6 py-8 text-center text-slate-400">Seçilen kriterlerde fatura kaydı bulunamadı.</td>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-400">{{ lang.t('reports.noDataFound') }}</td>
                     </tr>
                 </tbody>
             </table>
-        </div>
-
-        <!-- Mobile Card View -->
-        <div class="block md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-            <div *ngFor="let item of filteredInvoices" class="p-4 space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="font-bold text-slate-900 dark:text-white text-sm">{{ item.invoiceNo }}</span>
-                    <span [class]="'px-2.5 py-0.5 rounded-full text-[11px] font-bold ' + getStatusClass(item.status)">
-                        {{ getStatusLabel(item.status) }}
-                    </span>
-                </div>
-                <div class="flex items-center justify-between text-xs">
-                    <span class="font-medium text-slate-700 dark:text-slate-300">{{ item.customerName }}</span>
-                    <span class="font-bold text-slate-900 dark:text-white text-sm">₺{{ (item.total || 0) | number:'1.2-2' }}</span>
-                </div>
-                <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                    <span>Tarih: {{ item.date | date:'dd.MM.yyyy' }}</span>
-                    <span>Vergi: ₺{{ (item.taxTotal || 0) | number:'1.2-2' }}</span>
-                </div>
-            </div>
-            <div *ngIf="filteredInvoices.length === 0" class="p-6 text-center text-slate-400 text-xs">
-                Seçilen kriterlerde fatura kaydı bulunamadı.
-            </div>
         </div>
     </div>
 </div>

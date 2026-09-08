@@ -21,15 +21,17 @@ body {
     'opsz' 24
 }
 
-/* Printable PDF stylesheet */
+/* Printable PDF & Report stylesheet */
 @media print {
   body * {
     visibility: hidden;
   }
-  #printable-invoice, #printable-invoice * {
+  #printable-invoice, #printable-invoice *,
+  #printable-report, #printable-report *,
+  .printable-area, .printable-area * {
     visibility: visible;
   }
-  #printable-invoice {
+  #printable-invoice, #printable-report, .printable-area {
     position: absolute;
     left: 0;
     top: 0;
@@ -40,5 +42,8 @@ body {
     border: none;
     background: white !important;
     color: black !important;
+  }
+  .no-print {
+    display: none !important;
   }
 }

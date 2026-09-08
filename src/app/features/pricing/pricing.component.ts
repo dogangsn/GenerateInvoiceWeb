@@ -39,7 +39,7 @@ export class PricingComponent implements OnInit {
             period: '/aylık',
             description: 'Bireysel ve küçük ölçekli kullanım için temel fatura çözümü.',
             features: [
-                'Ayda 10 Fatura Kesimi',
+                'Ayda 5 Fatura Kesimi',
                 'Standart PDF İndirme & Yazdırma',
                 'Temel Gelir Raporlama',
                 'E-posta Desteği'
@@ -119,7 +119,7 @@ export class PricingComponent implements OnInit {
         if (planId === 'free') {
             const confirmed = await this.alertService.confirm(
                 'Ücretsiz Plana Geçiş',
-                'Ücretsiz plana geçtiğinizde aylık fatura limitiniz 10 adet ile sınırlandırılacaktır. Devam etmek istiyor musunuz?',
+                'Ücretsiz plana geçtiğinizde aylık fatura limitiniz 5 adet ile sınırlandırılacaktır. Devam etmek istiyor musunuz?',
                 'Evet, Ücretsiz Plana Geç',
                 'Vazgeç'
             );
@@ -141,7 +141,7 @@ export class PricingComponent implements OnInit {
         try {
             await this.userService.updateUserProfile(currentUser.uid, {
                 plan: planId,
-                monthlyInvoiceLimit: planId === 'free' ? 10 : 999999
+                monthlyInvoiceLimit: planId === 'free' ? 5 : 999999
             });
             this.currentPlan = planId;
             this.showUpgradeModal = false;

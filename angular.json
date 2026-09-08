@@ -36,7 +36,13 @@
             "production": {
               "extractLicenses": false,
               "sourceMap": false,
-              "optimization": true
+              "optimization": {
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "scripts": true
+              }
             },
             "development": {
               "optimization": false,
