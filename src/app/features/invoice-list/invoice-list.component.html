@@ -162,7 +162,7 @@
                             </div>
                         </td>
                         <td class="px-5 py-4 text-right">
-                            <span class="font-bold text-slate-900 dark:text-white">₺{{ invoice.total | number:'1.2-2' }}</span>
+                            <span class="font-bold text-slate-900 dark:text-white">{{ invoice.currencySymbol || '₺' }}{{ invoice.total | number:'1.2-2' }}</span>
                         </td>
                         <td class="px-4 py-4">
                             <div class="relative group/status">
@@ -616,10 +616,10 @@
                             <tr *ngFor="let item of previewInvoice.items">
                                 <td class="py-3 px-4 font-medium text-slate-900">{{ item.description }}</td>
                                 <td class="py-3 px-4 text-center font-medium text-slate-700">{{ item.quantity }}</td>
-                                <td class="py-3 px-4 text-right font-medium text-slate-700">₺{{ item.unitPrice | number:'1.2-2' }}</td>
-                                <td class="py-3 px-4 text-center font-medium text-slate-700">%{{ item.taxRate !== undefined ? item.taxRate : 20 }}</td>
+                                <td class="py-3 px-4 text-right font-medium text-slate-700">{{ previewInvoice.currencySymbol || '₺' }}{{ item.unitPrice | number:'1.2-2' }}</td>
+                                <td class="py-3 px-4 text-center font-medium text-slate-700">%{{ item.taxRate !== undefined ? item.taxRate : (previewInvoice.taxRate || 20) }}</td>
                                 <td class="py-3 px-4 text-center font-medium text-emerald-600">%{{ item.discount || 0 }}</td>
-                                <td class="py-3 px-4 text-right font-bold text-slate-900">₺{{ calculateLineTotal(item) | number:'1.2-2' }}</td>
+                                <td class="py-3 px-4 text-right font-bold text-slate-900">{{ previewInvoice.currencySymbol || '₺' }}{{ calculateLineTotal(item) | number:'1.2-2' }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -629,15 +629,15 @@
                         <div class="w-72 space-y-2 text-xs">
                             <div class="flex justify-between text-slate-600">
                                 <span>Ara Toplam</span>
-                                <span class="font-semibold">₺{{ (previewInvoice.subtotal || 0) | number:'1.2-2' }}</span>
+                                <span class="font-semibold">{{ previewInvoice.currencySymbol || '₺' }}{{ (previewInvoice.subtotal || 0) | number:'1.2-2' }}</span>
                             </div>
                             <div class="flex justify-between text-slate-600">
-                                <span>Hesaplanan KDV</span>
-                                <span class="font-semibold text-blue-600">₺{{ (previewInvoice.taxTotal || 0) | number:'1.2-2' }}</span>
+                                <span>{{ previewInvoice.taxLabel || 'KDV' }} Toplamı</span>
+                                <span class="font-semibold text-blue-600">{{ previewInvoice.currencySymbol || '₺' }}{{ (previewInvoice.taxTotal || 0) | number:'1.2-2' }}</span>
                             </div>
                             <div class="flex justify-between text-base font-black text-slate-900 pt-2 border-t-2 border-slate-900">
                                 <span>GENEL TOPLAM</span>
-                                <span class="text-primary">₺{{ previewInvoice.total | number:'1.2-2' }}</span>
+                                <span class="text-primary">{{ previewInvoice.currencySymbol || '₺' }}{{ previewInvoice.total | number:'1.2-2' }}</span>
                             </div>
                         </div>
                     </div>
@@ -700,8 +700,8 @@
                         <div *ngFor="let item of previewInvoice.items" class="grid grid-cols-12 items-center px-4 py-3.5 bg-slate-50/60 rounded-xl text-xs">
                             <div class="col-span-6 font-semibold text-slate-900">{{ item.description }}</div>
                             <div class="col-span-2 text-center text-slate-600">{{ item.quantity }}</div>
-                            <div class="col-span-2 text-right text-slate-600">₺{{ item.unitPrice | number:'1.2-2' }}</div>
-                            <div class="col-span-2 text-right font-bold text-slate-950">₺{{ calculateLineTotal(item) | number:'1.2-2' }}</div>
+                            <div class="col-span-2 text-right text-slate-600">{{ previewInvoice.currencySymbol || '₺' }}{{ item.unitPrice | number:'1.2-2' }}</div>
+                            <div class="col-span-2 text-right font-bold text-slate-950">{{ previewInvoice.currencySymbol || '₺' }}{{ calculateLineTotal(item) | number:'1.2-2' }}</div>
                         </div>
                     </div>
 
@@ -709,15 +709,15 @@
                         <div class="w-64 space-y-2 text-xs">
                             <div class="flex justify-between text-slate-400">
                                 <span>Ara Toplam</span>
-                                <span class="font-medium text-slate-800">₺{{ (previewInvoice.subtotal || 0) | number:'1.2-2' }}</span>
+                                <span class="font-medium text-slate-800">{{ previewInvoice.currencySymbol || '₺' }}{{ (previewInvoice.subtotal || 0) | number:'1.2-2' }}</span>
                             </div>
                             <div class="flex justify-between text-slate-400">
-                                <span>KDV</span>
-                                <span class="font-medium text-slate-800">₺{{ (previewInvoice.taxTotal || 0) | number:'1.2-2' }}</span>
+                                <span>{{ previewInvoice.taxLabel || 'KDV' }}</span>
+                                <span class="font-medium text-slate-800">{{ previewInvoice.currencySymbol || '₺' }}{{ (previewInvoice.taxTotal || 0) | number:'1.2-2' }}</span>
                             </div>
                             <div class="flex justify-between text-xl font-extrabold text-slate-950 pt-3 border-t border-slate-200">
                                 <span>Toplam</span>
-                                <span>₺{{ previewInvoice.total | number:'1.2-2' }}</span>
+                                <span>{{ previewInvoice.currencySymbol || '₺' }}{{ previewInvoice.total | number:'1.2-2' }}</span>
                             </div>
                         </div>
                     </div>
@@ -779,9 +779,9 @@
                                 <tr *ngFor="let item of previewInvoice.items" class="hover:bg-indigo-50/30">
                                     <td class="py-3 px-4 font-semibold text-slate-900">{{ item.description }}</td>
                                     <td class="py-3 px-4 text-center font-mono">{{ item.quantity }}</td>
-                                    <td class="py-3 px-4 text-right font-mono">₺{{ item.unitPrice | number:'1.2-2' }}</td>
+                                    <td class="py-3 px-4 text-right font-mono">{{ previewInvoice.currencySymbol || '₺' }}{{ item.unitPrice | number:'1.2-2' }}</td>
                                     <td class="py-3 px-4 text-center text-indigo-600 font-semibold">%{{ item.taxRate || 20 }}</td>
-                                    <td class="py-3 px-4 text-right font-mono font-bold text-indigo-950">₺{{ calculateLineTotal(item) | number:'1.2-2' }}</td>
+                                    <td class="py-3 px-4 text-right font-mono font-bold text-indigo-950">{{ previewInvoice.currencySymbol || '₺' }}{{ calculateLineTotal(item) | number:'1.2-2' }}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -791,15 +791,15 @@
                             <div class="w-80 bg-slate-900 text-white p-5 rounded-2xl shadow-lg space-y-2 text-xs">
                                 <div class="flex justify-between text-slate-400">
                                     <span>Net Matrah</span>
-                                    <span class="font-mono">₺{{ (previewInvoice.subtotal || 0) | number:'1.2-2' }}</span>
+                                    <span class="font-mono">{{ previewInvoice.currencySymbol || '₺' }}{{ (previewInvoice.subtotal || 0) | number:'1.2-2' }}</span>
                                 </div>
                                 <div class="flex justify-between text-indigo-300">
                                     <span>Hesaplanan KDV (%{{ previewInvoice.taxRate || 20 }})</span>
-                                    <span class="font-mono">₺{{ (previewInvoice.taxTotal || 0) | number:'1.2-2' }}</span>
+                                    <span class="font-mono">{{ previewInvoice.currencySymbol || '₺' }}{{ (previewInvoice.taxTotal || 0) | number:'1.2-2' }}</span>
                                 </div>
                                 <div class="flex justify-between text-lg font-mono font-black text-emerald-400 pt-3 border-t border-slate-700">
                                     <span>ÖDENECEK</span>
-                                    <span>₺{{ previewInvoice.total | number:'1.2-2' }}</span>
+                                    <span>{{ previewInvoice.currencySymbol || '₺' }}{{ previewInvoice.total | number:'1.2-2' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -872,10 +872,10 @@
                                 <td class="border-r border-black p-2 text-center font-bold">{{ idx + 1 }}</td>
                                 <td class="border-r border-black p-2">{{ item.description }}</td>
                                 <td class="border-r border-black p-2 text-center">{{ item.quantity }} Adet</td>
-                                <td class="border-r border-black p-2 text-right">₺{{ item.unitPrice | number:'1.2-2' }}</td>
+                                <td class="border-r border-black p-2 text-right">{{ previewInvoice.currencySymbol || '₺' }}{{ item.unitPrice | number:'1.2-2' }}</td>
                                 <td class="border-r border-black p-2 text-center">%{{ item.taxRate || 20 }}</td>
-                                <td class="border-r border-black p-2 text-right font-medium">₺{{ calculateLineTax(item) | number:'1.2-2' }}</td>
-                                <td class="p-2 text-right font-bold">₺{{ calculateLineTotal(item) | number:'1.2-2' }}</td>
+                                <td class="border-r border-black p-2 text-right font-medium">{{ previewInvoice.currencySymbol || '₺' }}{{ calculateLineTax(item) | number:'1.2-2' }}</td>
+                                <td class="p-2 text-right font-bold">{{ previewInvoice.currencySymbol || '₺' }}{{ calculateLineTotal(item) | number:'1.2-2' }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -890,19 +890,19 @@
                         <div class="w-72 border border-black divide-y divide-black text-[11px]">
                             <div class="flex justify-between p-1.5 bg-slate-100">
                                 <span>Mal/Hizmet Toplam Tutarı</span>
-                                <span class="font-bold">₺{{ (previewInvoice.subtotal || 0) | number:'1.2-2' }}</span>
+                                <span class="font-bold">{{ previewInvoice.currencySymbol || '₺' }}{{ (previewInvoice.subtotal || 0) | number:'1.2-2' }}</span>
                             </div>
                             <div class="flex justify-between p-1.5">
                                 <span>Toplam İskonto</span>
-                                <span>₺0,00</span>
+                                <span>{{ previewInvoice.currencySymbol || '₺' }}0,00</span>
                             </div>
                             <div class="flex justify-between p-1.5">
                                 <span>Hesaplanan KDV (%{{ previewInvoice.taxRate || 20 }})</span>
-                                <span class="font-bold text-blue-700">₺{{ (previewInvoice.taxTotal || 0) | number:'1.2-2' }}</span>
+                                <span class="font-bold text-blue-700">{{ previewInvoice.currencySymbol || '₺' }}{{ (previewInvoice.taxTotal || 0) | number:'1.2-2' }}</span>
                             </div>
                             <div class="flex justify-between p-2 bg-slate-200 font-bold text-xs text-black">
                                 <span>ÖDENECEK TUTAR</span>
-                                <span class="text-sm font-black">₺{{ previewInvoice.total | number:'1.2-2' }}</span>
+                                <span class="text-sm font-black">{{ previewInvoice.currencySymbol || '₺' }}{{ previewInvoice.total | number:'1.2-2' }}</span>
                             </div>
                         </div>
                     </div>

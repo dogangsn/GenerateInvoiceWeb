@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { UserService } from '../../core/services/user.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UserProfile } from '../../core/models/user.model';
@@ -9,7 +10,7 @@ import { AlertService } from '../../core/services/alert.service';
 @Component({
     selector: 'app-pricing',
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, RouterModule],
     templateUrl: './pricing.component.html',
     styles: [`:host { display: block; }`]
 })
@@ -20,8 +21,14 @@ export class PricingComponent implements OnInit {
     lang = inject(LanguageService);
 
     userProfile: UserProfile | null = null;
-    currentPlan: 'free' | 'pro' | 'enterprise' = 'pro';
+    currentPlan: 'free' | 'pro' | 'enterprise' = 'free';
     isUpdating = false;
+    showUpgradeModal = false;
+
+    get isLoggedIn(): boolean {
+        return !!this.authService.currentUser;
+    }
+    targetPlan: any = null;
 
     plans = [
         {
@@ -109,6 +116,26 @@ export class PricingComponent implements OnInit {
             return;
         }
 
+        if (planId === 'free') {
+            const confirmed = await this.alertService.confirm(
+                'Ücretsiz Plana Geçiş',
+                'Ücretsiz plana geçtiğinizde aylık fatura limitiniz 10 adet ile sınırlandırılacaktır. Devam etmek istiyor musunuz?',
+                'Evet, Ücretsiz Plana Geç',
+                'Vazgeç'
+            );
+            if (!confirmed) return;
+            await this.applyPlanChange(planId);
+        } else {
+            // Pro veya Kurumsal Plan için ödeme ve yükseltme modalını aç
+            this.targetPlan = this.plans.find(p => p.id === planId);
+            this.showUpgradeModal = true;
+        }
+    }
+
+    async applyPlanChange(planId: 'free' | 'pro' | 'enterprise') {
+        const currentUser = this.authService.currentUser;
+        if (!currentUser) return;
+
         this.isUpdating = true;
         this.alertService.loading('Plan güncelleniyor...');
         try {
@@ -117,6 +144,7 @@ export class PricingComponent implements OnInit {
                 monthlyInvoiceLimit: planId === 'free' ? 10 : 999999
             });
             this.currentPlan = planId;
+            this.showUpgradeModal = false;
             await this.alertService.success('Tebrikler! 🎉', `${planId.toUpperCase()} paketine başarıyla geçiş yaptınız.`);
         } catch (error) {
             console.error('Plan değiştirilirken hata:', error);
@@ -124,5 +152,18 @@ export class PricingComponent implements OnInit {
         } finally {
             this.isUpdating = false;
         }
+    }
+
+    contactViaWhatsApp() {
+        if (!this.targetPlan) return;
+        const msg = encodeURIComponent(`Merhaba, Odivon FaturaPro ${this.targetPlan.name} (${this.targetPlan.price}/ay) aboneliği başlatmak istiyorum. Yardımcı olabilir misiniz?`);
+        window.open(`https://wa.me/905000000000?text=${msg}`, '_blank');
+    }
+
+    contactViaEmail() {
+        if (!this.targetPlan) return;
+        const subject = encodeURIComponent(`FaturaPro ${this.targetPlan.name} Abonelik Talebi`);
+        const body = encodeURIComponent(`Merhaba,\n\nOdivon FaturaPro ${this.targetPlan.name} paketine geçiş yapmak istiyorum.\nKullanıcı: ${this.authService.currentUser?.email || ''}\n\nBilgilerinize sunarım.`);
+        window.location.href = `mailto:destek@odivon.com?subject=${subject}&body=${body}`;
     }
 }

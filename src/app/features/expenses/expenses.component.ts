@@ -313,7 +313,7 @@ export class ExpensesComponent implements OnInit, OnDestroy {
         if (input.files && input.files[0]) {
             const file = input.files[0];
             try {
-                const base64 = await this.aiScannerService.fileToBase64(file);
+                const base64 = await this.aiScannerService.compressImage(file);
                 this.expenseForm.patchValue({ receiptUrl: base64 });
             } catch (e) {
                 console.error('Failed to convert receipt to base64', e);
@@ -361,7 +361,7 @@ export class ExpensesComponent implements OnInit, OnDestroy {
         try {
             this.isScanning = true;
             this.scannerError = null;
-            const base64 = await this.aiScannerService.fileToBase64(file);
+            const base64 = await this.aiScannerService.compressImage(file);
             this.scannerPreviewUrl = base64;
 
             const result = await this.aiScannerService.scanReceiptOrInvoice(file);

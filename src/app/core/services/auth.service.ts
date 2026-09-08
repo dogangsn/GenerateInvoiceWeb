@@ -1,6 +1,6 @@
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { Auth, GoogleAuthProvider, signInWithPopup, signOut, user, User, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from '@angular/fire/auth';
+import { Auth, GoogleAuthProvider, signInWithPopup, signOut, user, User, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { Observable, BehaviorSubject } from 'rxjs';
 import { UserService } from './user.service';
@@ -107,10 +107,21 @@ export class AuthService {
         return result.user;
     }
 
-    async registerWithEmail(email: string, password: string) {
+    async registerWithEmail(email: string, password: string, displayName?: string) {
         const result = await createUserWithEmailAndPassword(this.auth, email, password);
+        if (displayName && result.user) {
+            try {
+                await updateProfile(result.user, { displayName });
+            } catch (e) {
+                console.warn('Display name update error:', e);
+            }
+        }
         // Yeni kullanıcıyı Firestore'a kaydet ve cache'le
         const profile = await this.userService.createOrUpdateUserProfile(result.user);
+        if (displayName) {
+            profile.displayName = displayName;
+            await this.userService.updateUserProfile(result.user.uid, { displayName });
+        }
         this.cacheProfile(profile);
         return result.user;
     }

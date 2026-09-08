@@ -1,5 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ButtonComponent } from '../../shared/components/button/button.component';
@@ -30,6 +30,7 @@ export class CreateInvoiceComponent implements OnInit {
     private userService = inject(UserService);
     private aiScannerService = inject(AiScannerService);
     private alertService = inject(AlertService);
+    private platformId = inject(PLATFORM_ID);
     lang = inject(LanguageService);
 
     invoiceForm: FormGroup;
@@ -38,6 +39,8 @@ export class CreateInvoiceComponent implements OnInit {
     countryName: string = 'Türkiye';
     taxLabel: string = 'KDV';
     taxRate: number = 20;
+    currency: string = 'TRY';
+    currencySymbol: string = '₺';
     availableTaxRates: number[] = [20, 10, 1, 0];
     currentTaxRateOptions: TaxRateOption[] = COUNTRIES_CONFIG[0].rates;
     isSaving: boolean = false;
@@ -83,6 +86,49 @@ export class CreateInvoiceComponent implements OnInit {
             this.invoiceForm.patchValue({ countryCode: code });
             this.setCountryDetails(code, rateParam);
             this.updateItemsTaxRate(this.taxRate);
+
+            // Giriş yapmış kullanıcı için bekleyen taslak fatura varsa otomatik geri yükle
+            if (isPlatformBrowser(this.platformId)) {
+                const savedDraft = sessionStorage.getItem('pending_invoice_draft');
+                if (savedDraft) {
+                    try {
+                        const draft = JSON.parse(savedDraft);
+                        if (draft.formValue) {
+                            this.invoiceForm.patchValue({
+                                invoiceType: draft.formValue.invoiceType,
+                                date: draft.formValue.date,
+                                dueDate: draft.formValue.dueDate,
+                                customerName: draft.formValue.customerName,
+                                customerEmail: draft.formValue.customerEmail,
+                                customerTaxId: draft.formValue.customerTaxId || draft.formValue.taxId,
+                                customerAddress: draft.formValue.customerAddress || draft.formValue.address,
+                            });
+                            if (draft.formValue.items && draft.formValue.items.length > 0) {
+                                while (this.items.length) {
+                                    this.items.removeAt(0);
+                                }
+                                draft.formValue.items.forEach((it: any) => {
+                                    this.items.push(this.fb.group({
+                                        description: [it.description, Validators.required],
+                                        quantity: [it.quantity, [Validators.required, Validators.min(1)]],
+                                        unitPrice: [it.unitPrice, [Validators.required, Validators.min(0)]],
+                                        taxRate: [it.taxRate !== undefined ? it.taxRate : this.taxRate],
+                                        discount: [it.discount || 0, [Validators.min(0), Validators.max(100)]]
+                                    }));
+                                });
+                            }
+                        }
+                        if (draft.countryCode) {
+                            this.setCountryDetails(draft.countryCode, draft.taxRate);
+                            this.invoiceForm.patchValue({ countryCode: draft.countryCode });
+                        }
+                        sessionStorage.removeItem('pending_invoice_draft');
+                        this.alertService.toast('Hazırladığınız taslak fatura geri yüklendi! 📝', 'success');
+                    } catch (e) {
+                        console.error('Taslak fatura yüklenirken hata:', e);
+                    }
+                }
+            }
         });
     }
 
@@ -109,6 +155,8 @@ export class CreateInvoiceComponent implements OnInit {
         this.countryCode = details.code;
         this.countryName = details.defaultName;
         this.taxLabel = details.taxLabel;
+        this.currency = details.currency || 'TRY';
+        this.currencySymbol = details.currencySymbol || '₺';
         this.currentTaxRateOptions = details.rates;
         this.availableTaxRates = details.rates.map(r => r.rate);
 
@@ -144,30 +192,48 @@ export class CreateInvoiceComponent implements OnInit {
             description: ['', Validators.required],
             quantity: [1, [Validators.required, Validators.min(1)]],
             unitPrice: [0, [Validators.required, Validators.min(0)]],
-            taxRate: [this.taxRate, [Validators.required, Validators.min(0)]],
+            taxRate: [this.taxRate],
             discount: [0, [Validators.min(0), Validators.max(100)]]
         });
         this.items.push(itemForm);
     }
 
     removeItem(index: number) {
-        this.items.removeAt(index);
+        if (this.items.length > 1) {
+            this.items.removeAt(index);
+        }
+    }
+
+    calculateLineNet(index: number): number {
+        const item = this.items.at(index).value;
+        const sub = (item.quantity || 0) * (item.unitPrice || 0);
+        const disc = sub * ((item.discount || 0) / 100);
+        return sub - disc;
+    }
+
+    calculateLineTax(index: number): number {
+        const net = this.calculateLineNet(index);
+        const item = this.items.at(index).value;
+        const rate = item.taxRate !== undefined ? Number(item.taxRate) : this.taxRate;
+        return net * (rate / 100);
+    }
+
+    calculateLineTotal(index: number): number {
+        return this.calculateLineNet(index) + this.calculateLineTax(index);
     }
 
     calculateSubtotal(): number {
-        return this.items.controls.reduce((acc, item) => {
-            const quantity = item.get('quantity')?.value || 0;
-            const unitPrice = item.get('unitPrice')?.value || 0;
-            return acc + (quantity * unitPrice);
+        return this.items.controls.reduce((sum, item) => {
+            const val = item.value;
+            return sum + ((val.quantity || 0) * (val.unitPrice || 0));
         }, 0);
     }
 
     calculateDiscount(): number {
-        return this.items.controls.reduce((acc, item) => {
-            const quantity = item.get('quantity')?.value || 0;
-            const unitPrice = item.get('unitPrice')?.value || 0;
-            const discount = item.get('discount')?.value || 0;
-            return acc + (quantity * unitPrice * (discount / 100));
+        return this.items.controls.reduce((sum, item) => {
+            const val = item.value;
+            const sub = (val.quantity || 0) * (val.unitPrice || 0);
+            return sum + (sub * ((val.discount || 0) / 100));
         }, 0);
     }
 
@@ -176,13 +242,8 @@ export class CreateInvoiceComponent implements OnInit {
     }
 
     calculateTax(): number {
-        return this.items.controls.reduce((acc, item) => {
-            const quantity = item.get('quantity')?.value || 0;
-            const unitPrice = item.get('unitPrice')?.value || 0;
-            const discount = item.get('discount')?.value || 0;
-            const rate = item.get('taxRate')?.value !== undefined ? Number(item.get('taxRate')?.value) : this.taxRate;
-            const net = (quantity * unitPrice) * (1 - (discount / 100));
-            return acc + (net * (rate / 100));
+        return this.items.controls.reduce((sum, _, index) => {
+            return sum + this.calculateLineTax(index);
         }, 0);
     }
 
@@ -193,30 +254,11 @@ export class CreateInvoiceComponent implements OnInit {
         }, 0);
     }
 
-    // Per-item live tax calculations
-    calculateLineTax(index: number): number {
-        const item = this.items.at(index);
-        if (!item) return 0;
-        const qty = item.get('quantity')?.value || 0;
-        const price = item.get('unitPrice')?.value || 0;
-        const discount = item.get('discount')?.value || 0;
-        const rate = item.get('taxRate')?.value !== undefined ? Number(item.get('taxRate')?.value) : this.taxRate;
-        const net = (qty * price) * (1 - (discount / 100));
-        return net * (rate / 100);
-    }
-
-    calculateLineTotal(index: number): number {
-        const item = this.items.at(index);
-        if (!item) return 0;
-        const qty = item.get('quantity')?.value || 0;
-        const price = item.get('unitPrice')?.value || 0;
-        const discount = item.get('discount')?.value || 0;
-        const net = (qty * price) * (1 - (discount / 100));
-        return net + this.calculateLineTax(index);
-    }
-
     calculateTotal(): number {
-        return this.calculateNetSubtotal() + this.calculateTax() + this.calculateAdditionalTaxTotal();
+        const netSubtotal = this.calculateNetSubtotal();
+        const baseTax = this.calculateTax();
+        const addTaxes = this.calculateAdditionalTaxTotal();
+        return netSubtotal + baseTax + addTaxes;
     }
 
     goBack() {
@@ -229,17 +271,37 @@ export class CreateInvoiceComponent implements OnInit {
             return;
         }
 
-        // Ücretsiz Plan Fatura Limit Kontrolü (Maks 5 Fatura)
+        // Misafir Kullanıcı Kontrolü: Giriş yapmamışsa verileri koru ve login/register'a yönlendir
         const currentUser = this.authService.currentUser;
-        if (currentUser) {
-            const profile = await this.userService.getUserProfile(currentUser.uid);
-            if (profile && (profile.plan === 'free' || !profile.plan)) {
-                const existingInvoices = await firstValueFrom(this.invoiceService.getInvoices());
-                if (existingInvoices.length >= (profile.monthlyInvoiceLimit || 5)) {
-                    this.alertService.warning('Plan Limiti', '⚠️ Ücretsiz Plan limitine ulaştınız! (Maksimum 5 Fatura).\n\nSınırsız fatura oluşturmak için lütfen Pro Plana yükseltin.');
-                    this.router.navigate(['/pricing']);
-                    return;
-                }
+        if (!currentUser) {
+            if (isPlatformBrowser(this.platformId)) {
+                const draftData = {
+                    formValue: this.invoiceForm.value,
+                    countryCode: this.countryCode,
+                    taxRate: this.taxRate
+                };
+                sessionStorage.setItem('pending_invoice_draft', JSON.stringify(draftData));
+            }
+            const confirmed = await this.alertService.confirm(
+                'Giriş Yapın veya Üye Olun',
+                'Faturanız hazırlandı! 🎉\n\nFaturanızı güvenle kaydetmek, PDF olarak indirmek veya müşterinize göndermek için lütfen ücretsiz giriş yapın veya kayıt olun.\n\nGirdiğiniz tüm bilgiler korunacaktır.',
+                'Giriş / Kayıt Ol',
+                'İptal'
+            );
+            if (confirmed) {
+                this.router.navigate(['/login'], { queryParams: { returnUrl: '/create-invoice' } });
+            }
+            return;
+        }
+
+        // Ücretsiz Plan Fatura Limit Kontrolü (Maks 5 Fatura)
+        const profile = await this.userService.getUserProfile(currentUser.uid);
+        if (profile && (profile.plan === 'free' || !profile.plan)) {
+            const existingInvoices = await firstValueFrom(this.invoiceService.getInvoices());
+            if (existingInvoices.length >= (profile.monthlyInvoiceLimit || 5)) {
+                this.alertService.warning('Plan Limiti', '⚠️ Ücretsiz Plan limitine ulaştınız! (Maksimum 5 Fatura).\n\nSınırsız fatura oluşturmak için lütfen Pro Plana yükseltin.');
+                this.router.navigate(['/pricing']);
+                return;
             }
         }
 
@@ -266,6 +328,8 @@ export class CreateInvoiceComponent implements OnInit {
                 countryCode: this.countryCode,
                 taxLabel: this.taxLabel,
                 taxRate: this.taxRate,
+                currency: this.currency,
+                currencySymbol: this.currencySymbol,
                 notes: '',
                 status: val.invoiceType === 'proforma' ? 'draft' : 'sent',
                 approvalStatus: 'approved'
@@ -318,7 +382,7 @@ export class CreateInvoiceComponent implements OnInit {
         try {
             this.isScanning = true;
             this.scannerError = null;
-            const base64 = await this.aiScannerService.fileToBase64(file);
+            const base64 = await this.aiScannerService.compressImage(file);
             this.scannerPreviewUrl = base64;
 
             const result = await this.aiScannerService.scanReceiptOrInvoice(file);

@@ -53,10 +53,59 @@ export class AiScannerService {
     }
 
     /**
+     * Yüklenen görseli Canvas üzerinde maksimum maxWidth çözünürlüğe ölçekler
+     * ve JPEG formatında sıkıştırarak base64 string döndürür.
+     * Bu sayede Firestore 1 MB doküman sınırı asla aşılmaz (ortalama 100-250 KB).
+     */
+    compressImage(file: File, maxWidth = 1200, quality = 0.75): Promise<string> {
+        return new Promise((resolve, reject) => {
+            if (!file.type.startsWith('image/')) {
+                this.fileToBase64(file).then(resolve).catch(reject);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e: any) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        resolve(e.target.result);
+                        return;
+                    }
+
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+                    resolve(compressedBase64);
+                };
+                img.onerror = err => reject(err);
+            };
+            reader.onerror = err => reject(err);
+        });
+    }
+
+    /**
      * Yüklenen fiş/fatura görselini analiz eder (File nesnesi veya base64 string alabilir)
      */
     async scanReceiptOrInvoice(input: string | File): Promise<ScannedDocumentResult> {
-        const imageBase64 = typeof input === 'string' ? input : await this.fileToBase64(input);
+        const imageBase64 = typeof input === 'string' ? input : await this.compressImage(input);
         const apiKey = this.getApiKey();
 
         if (apiKey) {
