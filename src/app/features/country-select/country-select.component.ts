@@ -5,13 +5,7 @@ import { Auth } from '@angular/fire/auth';
 import { AuthService } from '../../core/services/auth.service';
 import { LanguageService } from '../../core/services/language.service';
 import { User } from '@angular/fire/auth';
-
-interface Country {
-    nameKey: string;
-    flag: string;
-    code: string;
-    taxRate: number;
-}
+import { COUNTRIES_CONFIG, CountryConfig } from '../../core/constants/countries.constant';
 
 @Component({
     selector: 'app-country-select',
@@ -31,18 +25,7 @@ export class CountrySelectComponent implements OnInit {
     isLoggedIn = signal(false);
     isLoading = signal(true);
 
-    countries: Country[] = [
-        { nameKey: 'countries.turkey', flag: '🇹🇷', code: 'TR', taxRate: 20 },
-        { nameKey: 'countries.germany', flag: '🇩🇪', code: 'DE', taxRate: 19 },
-        { nameKey: 'countries.france', flag: '🇫🇷', code: 'FR', taxRate: 20 },
-        { nameKey: 'countries.uk', flag: '🇬🇧', code: 'UK', taxRate: 20 },
-        { nameKey: 'countries.spain', flag: '🇪🇸', code: 'ES', taxRate: 21 },
-        { nameKey: 'countries.italy', flag: '🇮🇹', code: 'IT', taxRate: 22 },
-        { nameKey: 'countries.netherlands', flag: '🇳🇱', code: 'NL', taxRate: 21 },
-        { nameKey: 'countries.canada', flag: '🇨🇦', code: 'CA', taxRate: 5 },
-        { nameKey: 'countries.usa', flag: '🇺🇸', code: 'US', taxRate: 0 },
-        { nameKey: 'countries.australia', flag: '🇦🇺', code: 'AU', taxRate: 10 },
-    ];
+    countries: CountryConfig[] = COUNTRIES_CONFIG;
 
     async ngOnInit() {
         if (isPlatformBrowser(this.platformId)) {
@@ -63,9 +46,9 @@ export class CountrySelectComponent implements OnInit {
         }
     }
 
-    selectCountry(country: Country) {
+    selectCountry(country: CountryConfig) {
         console.log('Selected country:', country);
-        this.router.navigate(['/create-invoice'], { queryParams: { taxRate: country.taxRate, countryCode: country.code } });
+        this.router.navigate(['/create-invoice'], { queryParams: { taxRate: country.defaultRate, countryCode: country.code } });
     }
 
     goToLogin() {

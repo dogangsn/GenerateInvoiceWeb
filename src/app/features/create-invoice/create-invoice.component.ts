@@ -11,6 +11,7 @@ import { InvoiceFormData } from '../../core/models/invoice.model';
 import { LanguageService } from '../../core/services/language.service';
 import { AiScannerService, ScannedDocumentResult } from '../../core/services/ai-scanner.service';
 import { AlertService } from '../../core/services/alert.service';
+import { COUNTRIES_CONFIG, COUNTRY_MAP, CountryConfig, TaxRateOption } from '../../core/constants/countries.constant';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
@@ -32,11 +33,13 @@ export class CreateInvoiceComponent implements OnInit {
     lang = inject(LanguageService);
 
     invoiceForm: FormGroup;
-    taxRate: number = 20;
-    countryName: string = 'Türkiye';
+    countries: CountryConfig[] = COUNTRIES_CONFIG;
     countryCode: string = 'TR';
+    countryName: string = 'Türkiye';
     taxLabel: string = 'KDV';
+    taxRate: number = 20;
     availableTaxRates: number[] = [20, 10, 1, 0];
+    currentTaxRateOptions: TaxRateOption[] = COUNTRIES_CONFIG[0].rates;
     isSaving: boolean = false;
     activeMobileTab: 'form' | 'preview' = 'form';
 
@@ -59,6 +62,8 @@ export class CreateInvoiceComponent implements OnInit {
             customerEmail: [''],
             customerTaxId: [''],
             customerAddress: [''],
+            taxId: [''],
+            address: [''],
             items: this.fb.array([]),
             additionalTaxes: this.fb.array([])
         });
@@ -72,43 +77,46 @@ export class CreateInvoiceComponent implements OnInit {
             if (params['type'] === 'proforma') {
                 this.invoiceForm.patchValue({ invoiceType: 'proforma' });
             }
-            if (params['taxRate']) {
-                this.taxRate = Number(params['taxRate']);
-            }
-            if (params['countryCode']) {
-                this.countryCode = params['countryCode'];
-                this.invoiceForm.patchValue({ countryCode: params['countryCode'] });
-                this.setCountryDetails(params['countryCode']);
-            } else {
-                this.setCountryDetails('TR');
-            }
+            const code = params['countryCode'] || 'TR';
+            const rateParam = params['taxRate'] !== undefined ? Number(params['taxRate']) : undefined;
+            this.countryCode = code;
+            this.invoiceForm.patchValue({ countryCode: code });
+            this.setCountryDetails(code, rateParam);
+            this.updateItemsTaxRate(this.taxRate);
         });
     }
 
     onCountryChange(code: string) {
         this.countryCode = code;
+        this.invoiceForm.patchValue({ countryCode: code });
         this.setCountryDetails(code);
+        this.updateItemsTaxRate(this.taxRate);
     }
 
-    setCountryDetails(code: string) {
-        const countryMap: { [key: string]: { name: string, taxLabel: string, taxRate: number, rates: number[] } } = {
-            'TR': { name: 'Türkiye', taxLabel: 'KDV', taxRate: 20, rates: [20, 10, 1, 0] },
-            'DE': { name: 'Almanya', taxLabel: 'MwSt', taxRate: 19, rates: [19, 7, 0] },
-            'FR': { name: 'Fransa', taxLabel: 'TVA', taxRate: 20, rates: [20, 10, 5.5, 2.1, 0] },
-            'UK': { name: 'Birleşik Krallık', taxLabel: 'VAT', taxRate: 20, rates: [20, 5, 0] },
-            'ES': { name: 'İspanya', taxLabel: 'IVA', taxRate: 21, rates: [21, 10, 4, 0] },
-            'IT': { name: 'İtalya', taxLabel: 'IVA', taxRate: 22, rates: [22, 10, 5, 4, 0] },
-            'NL': { name: 'Hollanda', taxLabel: 'BTW', taxRate: 21, rates: [21, 9, 0] },
-            'CA': { name: 'Kanada', taxLabel: 'GST/HST', taxRate: 5, rates: [5, 0] },
-            'US': { name: 'ABD', taxLabel: 'Sales Tax', taxRate: 0, rates: [0, 5, 6, 7, 8.875] },
-            'AU': { name: 'Avustralya', taxLabel: 'GST', taxRate: 10, rates: [10, 0] }
-        };
+    onTaxRateChange(rate: number | string) {
+        this.taxRate = Number(rate);
+        this.updateItemsTaxRate(this.taxRate);
+    }
 
-        const details = countryMap[code] || { name: code, taxLabel: 'Tax', taxRate: 20, rates: [20, 10, 1, 0] };
-        this.countryName = details.name;
+    updateItemsTaxRate(rate: number) {
+        this.items.controls.forEach(control => {
+            control.patchValue({ taxRate: rate });
+        });
+    }
+
+    setCountryDetails(code: string, preferredTaxRate?: number) {
+        const details = COUNTRY_MAP[code] || COUNTRIES_CONFIG[0];
+        this.countryCode = details.code;
+        this.countryName = details.defaultName;
         this.taxLabel = details.taxLabel;
-        this.taxRate = details.taxRate;
-        this.availableTaxRates = details.rates;
+        this.currentTaxRateOptions = details.rates;
+        this.availableTaxRates = details.rates.map(r => r.rate);
+
+        if (preferredTaxRate !== undefined && this.availableTaxRates.includes(preferredTaxRate)) {
+            this.taxRate = preferredTaxRate;
+        } else {
+            this.taxRate = details.defaultRate;
+        }
     }
 
     get items() {

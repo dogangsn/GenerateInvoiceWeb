@@ -66,12 +66,12 @@
             <p class="text-slate-500 text-lg max-w-xl">{{ lang.t('countries.subtitle') }}</p>
         </div>
 
-        <div class="w-full max-w-4xl">
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div class="w-full max-w-5xl">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 <button *ngFor="let country of countries" (click)="selectCountry(country)"
                     class="group flex flex-col items-center p-5 bg-white rounded-xl border-2 border-slate-100 hover:border-primary hover:shadow-lg transition-all duration-200">
-                    <div class="text-5xl mb-3 group-hover:scale-110 transition-transform">
-                        {{ country.flag }}
+                    <div class="w-16 h-11 mb-3 rounded-md overflow-hidden shadow-sm border border-slate-200 group-hover:scale-110 transition-transform bg-slate-100 flex items-center justify-center">
+                        <img [src]="country.flagUrl" [alt]="country.defaultName" class="w-full h-full object-cover" />
                     </div>
                     <span class="font-semibold text-slate-700 group-hover:text-primary text-sm text-center">
                         {{ lang.t(country.nameKey) }}

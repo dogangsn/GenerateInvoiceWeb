@@ -15,6 +15,7 @@ import html2canvas from 'html2canvas';
 import { UserService } from '../../core/services/user.service';
 import { AlertService } from '../../core/services/alert.service';
 import { Router } from '@angular/router';
+import { COUNTRIES_CONFIG, COUNTRY_MAP } from '../../core/constants/countries.constant';
 
 @Component({
     selector: 'app-invoice-list',
@@ -67,6 +68,7 @@ export class InvoiceListComponent implements OnInit {
     formData: InvoiceFormData = this.getEmptyForm();
 
     // Country & Tax State
+    countries = COUNTRIES_CONFIG;
     countryCode = 'TR';
     countryName = 'Türkiye';
     taxLabel = 'KDV';
@@ -414,24 +416,11 @@ export class InvoiceListComponent implements OnInit {
 
     // Country selection
     setCountryDetails(code: string) {
-        const countryMap: { [key: string]: { name: string, taxLabel: string, taxRate: number, rates: number[] } } = {
-            'TR': { name: 'Türkiye', taxLabel: 'KDV', taxRate: 20, rates: [20, 10, 1, 0] },
-            'DE': { name: 'Almanya', taxLabel: 'MwSt', taxRate: 19, rates: [19, 7, 0] },
-            'FR': { name: 'Fransa', taxLabel: 'TVA', taxRate: 20, rates: [20, 10, 5.5, 2.1, 0] },
-            'UK': { name: 'Birleşik Krallık', taxLabel: 'VAT', taxRate: 20, rates: [20, 5, 0] },
-            'ES': { name: 'İspanya', taxLabel: 'IVA', taxRate: 21, rates: [21, 10, 4, 0] },
-            'IT': { name: 'İtalya', taxLabel: 'IVA', taxRate: 22, rates: [22, 10, 5, 4, 0] },
-            'NL': { name: 'Hollanda', taxLabel: 'BTW', taxRate: 21, rates: [21, 9, 0] },
-            'CA': { name: 'Kanada', taxLabel: 'GST/HST', taxRate: 5, rates: [5, 0] },
-            'US': { name: 'ABD', taxLabel: 'Sales Tax', taxRate: 0, rates: [0, 5, 6, 7, 8.875] },
-            'AU': { name: 'Avustralya', taxLabel: 'GST', taxRate: 10, rates: [10, 0] }
-        };
-
-        const details = countryMap[code] || { name: code, taxLabel: 'Tax', taxRate: 20, rates: [20, 10, 1, 0] };
-        this.countryName = details.name;
+        const details = COUNTRY_MAP[code] || COUNTRIES_CONFIG[0];
+        this.countryName = details.defaultName;
         this.taxLabel = details.taxLabel;
-        this.taxRate = details.taxRate;
-        this.availableTaxRates = details.rates;
+        this.taxRate = details.defaultRate;
+        this.availableTaxRates = details.rates.map(r => r.rate);
         this.formData.countryCode = code;
         this.formData.taxRate = this.taxRate;
         this.formData.taxLabel = this.taxLabel;

@@ -68,43 +68,40 @@
                     [formControl]="$any(invoiceForm.get('customerName'))"></app-input>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <app-input label="Vergi Numarası" placeholder="Vergi numarasını girin"
-                        [formControl]="$any(invoiceForm.get('taxId'))"></app-input>
+                        [formControl]="$any(invoiceForm.get('customerTaxId'))"></app-input>
                     <app-input label="Adres" placeholder="Müşteri adresini girin"
-                        [formControl]="$any(invoiceForm.get('address'))"></app-input>
+                        [formControl]="$any(invoiceForm.get('customerAddress'))"></app-input>
                 </div>
             </section>
 
             <!-- Vergi & Ülke Ayarları -->
             <section class="space-y-4">
                 <h2 class="text-base sm:text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Ülke & Vergi Formatı Seçimi</h2>
-                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div class="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">İşlem Yapılacak Ülke</label>
                         <select [ngModel]="countryCode" (ngModelChange)="onCountryChange($event)" [ngModelOptions]="{standalone: true}"
                             class="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm font-medium focus:border-primary focus:ring-2 focus:ring-primary/20">
-                            <option value="TR">🇹🇷 Türkiye (KDV %20)</option>
-                            <option value="DE">🇩🇪 Almanya (MwSt %19)</option>
-                            <option value="FR">🇫🇷 Fransa (TVA %20)</option>
-                            <option value="UK">🇬🇧 Birleşik Krallık (VAT %20)</option>
-                            <option value="ES">🇪🇸 İspanya (IVA %21)</option>
-                            <option value="IT">🇮🇹 İtalya (IVA %22)</option>
-                            <option value="NL">🇳🇱 Hollanda (BTW %21)</option>
-                            <option value="CA">🇨🇦 Kanada (GST/HST %5)</option>
-                            <option value="US">🇺🇸 ABD (Sales Tax %0)</option>
-                            <option value="AU">🇦🇺 Avustralya (GST %10)</option>
+                            <option *ngFor="let c of countries" [value]="c.code">
+                                {{ c.flag }} {{ c.defaultName }}
+                            </option>
                         </select>
                     </div>
 
-                    <div class="flex items-center gap-4 pt-2">
-                        <div class="flex-1">
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Uygulanan Vergi Etiketi</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Uygulanan Vergi Türü</label>
                             <input type="text" [value]="taxLabel" disabled
-                                class="w-full h-9 px-3 bg-white rounded-lg border border-slate-200 text-sm font-semibold text-slate-700">
+                                class="w-full h-10 px-3 bg-slate-100 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 cursor-not-allowed">
                         </div>
-                        <div class="w-28">
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Oran (%)</label>
-                            <input type="number" [value]="taxRate" disabled
-                                class="w-full h-9 px-3 bg-white rounded-lg border border-slate-200 text-sm font-bold text-slate-900 text-right">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Vergi Oranı (%)</label>
+                            <select [ngModel]="taxRate" (ngModelChange)="onTaxRateChange($event)" [ngModelOptions]="{standalone: true}"
+                                class="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm font-bold focus:border-primary focus:ring-2 focus:ring-primary/20">
+                                <option *ngFor="let opt of currentTaxRateOptions" [value]="opt.rate">
+                                    {{ opt.label }}
+                                </option>
+                            </select>
                         </div>
                     </div>
                 </div>

@@ -68,7 +68,7 @@ export class CustomerListComponent implements OnInit {
     formData: CustomerFormData = this.getEmptyForm();
 
     countries = [
-        'Türkiye', 'Almanya', 'Fransa', 'Birleşik Krallık', 'İspanya',
+        'Türkiye', 'Dubai (BAE)', 'Almanya', 'Fransa', 'Birleşik Krallık', 'İspanya',
         'İtalya', 'Hollanda', 'Kanada', 'ABD', 'Avustralya'
     ];
 

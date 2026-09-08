@@ -41,6 +41,8 @@ export interface Invoice {
     templateId?: InvoiceTemplateId;
     approvalNote?: string;
     approvedAt?: Date | string;
+    currency?: string;
+    currencySymbol?: string;
 }
 
 export interface InvoiceFormData {
@@ -63,4 +65,6 @@ export interface InvoiceFormData {
     additionalTaxes?: { name: string; rate: number }[];
     approvalStatus?: InvoiceApprovalStatus;
     templateId?: InvoiceTemplateId;
+    currency?: string;
+    currencySymbol?: string;
 }
